@@ -84,10 +84,13 @@ async function sendTapOnce(tap) {
       await deleteTap(tap.event_id);
       return { kind: 'rejected', data };
     }
-    throw new Error(data.message || `HTTP ${res.status}`);
-  } catch (err) {
+    // Server reached but not able to take it right now: keep it and retry.
     await putTap({ ...tap, attempts: tap.attempts + 1 });
-    return { kind: 'queued', data: { message: String(err.message || err) } };
+    return { kind: 'queued', data: { reason: 'server', code: data.code, message: data.message || `HTTP ${res.status}` } };
+  } catch (err) {
+    // Network failure: no signal, or the server could not be reached at all.
+    await putTap({ ...tap, attempts: tap.attempts + 1 });
+    return { kind: 'queued', data: { reason: 'network', message: String(err.message || err) } };
   }
 }
 

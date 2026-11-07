@@ -82,7 +82,11 @@ function Card({ state, tagId }) {
           ⏳
         </div>
         <h1>Tap saved</h1>
-        <p>No connection right now. It sends by itself when you're back online.</p>
+        <p>
+          {d.reason === 'server'
+            ? "The queue server isn't ready right now. Your tap is saved on this phone and sends by itself."
+            : "No connection right now. It sends by itself when you're back online."}
+        </p>
         <p className="muted">Tapped at {formatMYT(state.tap.timestamp)}</p>
       </section>
     );
