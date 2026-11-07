@@ -1,0 +1,23 @@
+{
+  "name": "queuesense",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "npm install && npm --prefix ingest install && npm --prefix web install",
+    "dev": "node scripts/dev.js",
+    "tap": "node simulator/send-tap.js",
+    "watch": "node simulator/watch-live.js",
+    "rush": "node simulator/rush.js",
+    "test": "npm --prefix ingest test"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.0.0"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,15 @@
+rules_version = '2';
+// Clients never write. All writes go through Cloud Run (Admin SDK bypasses these rules).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Live aggregates the student and dispatcher views may read.
+    match /live/{doc=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    // Everything else (tags, ingest_state, ...) is server-only.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
