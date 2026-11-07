@@ -34,12 +34,13 @@ npm run dev
 
 Phone on the same Wi-Fi: open `http://<your-PC-IP>:5173/`. Set `VITE_INGEST_URL=http://<your-PC-IP>:8081` in `web/.env.local` and add `http://<your-PC-IP>:5173` to `ALLOWED_ORIGINS` in `ingest/.env.local`.
 
-## Later: deploy (free tier, when the stickers arrive)
+## Live deployment (free tier)
 
-- **Firebase (Spark, free):** Anonymous Auth + Firestore. Deploy `firestore.rules`.
-- **Vercel (free):** the web app, and ingest as one serverless function. Salt as a Vercel env var.
-- **BigQuery sandbox (free):** history and forecast.
-- Sticker URLs become `https://<vercel-domain>/t/{tag_id}`. Fill them into [tags/tags.csv](tags/tags.csv), then write each with NFC Tools (Add record → URL).
+- **Site:** https://queuesense-coral.vercel.app (live count), `/sim` (NFC simulator), `/t/{tag_id}` (sticker taps)
+- **Vercel (Hobby):** web app + `/api` ingest function (`api/index.js`, region `sin1`). Auto-deploys on every push to `main`.
+- **Firebase `queuesense-apu` (Spark):** Anonymous Auth, Firestore `asia-southeast1`, rules from `firestore.rules`.
+- **One secret, set in Vercel only:** `FIREBASE_SERVICE_ACCOUNT` = the Firebase service account JSON (Project settings → Service accounts → Generate new private key). Never commit it.
+- **Stickers:** write the URLs in [tags/tags.csv](tags/tags.csv) with NFC Tools (Add record → URL). Tags seed into Firestore automatically on the first tap.
 
 ## Notes
 

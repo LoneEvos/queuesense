@@ -10,14 +10,11 @@
     "rush": "node simulator/rush.js",
     "test": "npm --prefix ingest test"
   },
-  "devDependencies": {
-    "firebase-tools": "^14.0.0"
-  },
   "dependencies": {
     "express": "^4.21.2",
     "firebase-admin": "^13.0.2"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   }
 }
