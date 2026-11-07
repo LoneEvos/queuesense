@@ -27,12 +27,12 @@ npm run setup
 npm run dev
 ```
 
-- http://localhost:5173/ is the **NFC simulator**: tap a virtual sticker and the virtual phone opens the tap page.
-- http://localhost:5173/live/stopA is the **live count**.
+- http://localhost:5173/ is the **live count**.
+- http://localhost:5173/sim is the **NFC simulator**: tap a virtual sticker and the virtual phone opens the tap page.
 - `npm run rush` (second terminal) sends a 300-student rush hour. Options: `npm run rush -- --students 500 --bus 40`.
 - `npm run tap -- stopA-q1 bus01-door1 --students 3` sends individual taps.
 
-Phone on the same Wi-Fi: open `http://<your-PC-IP>:5173/`. Set `VITE_INGEST_URL=http://<your-PC-IP>:8081` in `web/.env.local` and add `http://<your-PC-IP>:5173` to `ALLOWED_ORIGINS` in `ingest/.env.local`.
+Phone on the same Wi-Fi: open `http://<your-PC-IP>:5173/sim`. The app calls `/api` through the Vite proxy, so no extra config.
 
 ## Live deployment (free tier)
 
