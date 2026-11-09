@@ -11,3 +11,4 @@ ui-debug.log
 *.log
 .DS_Store
 service-account*.json
+simulator/out/

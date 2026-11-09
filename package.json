@@ -8,7 +8,8 @@
     "tap": "node simulator/send-tap.js",
     "watch": "node simulator/watch-live.js",
     "rush": "node simulator/rush.js",
-    "test": "npm --prefix ingest test"
+    "test": "npm --prefix ingest test",
+    "history": "node simulator/history.js"
   },
   "dependencies": {
     "express": "^4.21.2",
