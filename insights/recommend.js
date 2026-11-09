@@ -76,66 +76,64 @@ export function simulateDay(slots, extra = {}) {
  * forecast: [{ slot_date, dow, hour, forecast_joins, scheduled_buses }]
  * Returns recommendations sorted by minutes saved, with before/after numbers for the target hour.
  */
-export function recommend(forecast, { maxExtra = 2, minSavingMin = 3 } = {}) {
-  const days = groupBy(forecast.filter((f) => (f.scheduled_buses ?? 0) > 0), (f) => f.slot_date);
+export function recommend(
+  forecast,
+  { maxExtra = 2, maxPerDay = 2, minPersonHours = 10, minSavingMin = 3 } = {},
+) {
+  const days = groupBy(forecast.filter((f) => (f.scheduled_buses ?? 0) > 0), (f) => f.slot_date ?? f.date);
   const recs = [];
   for (const [date, slots] of days) {
-    const base = simulateDay(slots);
-    const peakBefore = worstHour(base);
-    if (!peakBefore || peakBefore.avg_wait_min < 8) continue;
-    const people = base.reduce((s, r) => s + r.joins, 0);
-    const dayBefore = weightedWait(base);
-
-    // Try 1..maxExtra buses in each busy hour. A bus added early can clear a backlog that hurts
-    // later hours, so score by person-minutes of waiting saved across the whole day, per extra bus.
-    let best = null;
-    for (const s of slots) {
-      if (s.forecast_joins < 60) continue;
-      for (let add = 1; add <= maxExtra; add++) {
-        const after = simulateDay(slots, { [s.hour]: add });
-        const dayAfter = weightedWait(after);
-        const savedPersonMin = (dayBefore - dayAfter) * people;
-        const perBus = savedPersonMin / add;
-        // A further bus must still pay off: keep it only if it beats the best so far per bus,
-        // or saves at least 20% more in total than the best option.
-        if (
-          !best ||
-          perBus > best.perBus * 1.05 ||
-          (best.rec.hour === s.hour && savedPersonMin > best.savedPersonMin * 1.2)
-        ) {
-          const peakAfter = worstHour(after);
-          best = {
-            perBus,
-            savedPersonMin,
-            rec: {
-              slot_date: date,
-              dow: slots[0].dow,
-              hour: s.hour,
-              add_buses: add,
-              scheduled_buses: s.scheduled_buses,
-              forecast_joins: s.forecast_joins,
-              forecast_people_day: Math.round(people),
-              peak_hour: peakBefore.hour,
-              peak_wait_before_min: peakBefore.avg_wait_min,
-              peak_wait_after_min: after.find((r) => r.hour === peakBefore.hour).avg_wait_min,
-              worst_wait_after_min: peakAfter.avg_wait_min,
-              left_behind_before: maxBy(base, 'left_behind_per_bus'),
-              left_behind_after: maxBy(after, 'left_behind_per_bus'),
-              day_wait_before_min: dayBefore,
-              day_wait_after_min: dayAfter,
-              person_hours_saved: Math.round(savedPersonMin / 60),
-            },
-          };
+    const people = slots.reduce((s, r) => s + r.forecast_joins, 0);
+    const extras = {}; // buses already recommended for this day
+    // Greedy: find the best change, apply it, then look again (e.g. one for the morning, one for the evening).
+    for (let k = 0; k < maxPerDay; k++) {
+      const base = simulateDay(slots, extras);
+      const dayBefore = weightedWait(base);
+      let best = null;
+      for (const s of slots) {
+        if (s.forecast_joins < 60 || extras[s.hour]) continue;
+        for (let add = 1; add <= maxExtra; add++) {
+          const after = simulateDay(slots, { ...extras, [s.hour]: add });
+          const savedPersonMin = (dayBefore - weightedWait(after)) * people;
+          const perBus = savedPersonMin / add;
+          // A bus added early can clear a backlog that hurts later hours, so score by waiting saved
+          // across the whole day per extra bus. A second bus in the same hour must add 20% more saving.
+          const better =
+            !best ||
+            perBus > best.perBus * 1.05 ||
+            (best.hour === s.hour && savedPersonMin > best.savedPersonMin * 1.2);
+          if (better) best = { hour: s.hour, add, perBus, savedPersonMin, base, after, slot: s };
         }
       }
+      if (!best || best.savedPersonMin / 60 < minPersonHours) break;
+
+      // Headline numbers: the hour this change helps most (often a later hour, once a backlog clears).
+      const gains = best.base.map((b, i) => ({ b, a: best.after[i], gain: b.avg_wait_min - best.after[i].avg_wait_min }));
+      const top = gains.sort((x, y) => y.gain - x.gain)[0];
+      if (top.gain < minSavingMin) break;
+
+      extras[best.hour] = best.add;
+      recs.push({
+        slot_date: date,
+        dow: slots[0].dow,
+        hour: best.hour,
+        add_buses: best.add,
+        scheduled_buses: best.slot.scheduled_buses,
+        forecast_joins: best.slot.forecast_joins,
+        forecast_people_day: Math.round(people),
+        impact_hour: top.b.hour,
+        wait_before_min: top.b.avg_wait_min,
+        wait_after_min: top.a.avg_wait_min,
+        left_behind_before: top.b.left_behind_per_bus,
+        left_behind_after: top.a.left_behind_per_bus,
+        day_wait_before_min: dayBefore,
+        day_wait_after_min: weightedWait(best.after),
+        person_hours_saved: Math.round(best.savedPersonMin / 60),
+      });
     }
-    if (best && best.rec.peak_wait_before_min - best.rec.peak_wait_after_min >= minSavingMin) recs.push(best.rec);
   }
   return recs.sort((a, b) => b.person_hours_saved - a.person_hours_saved);
 }
-
-const worstHour = (rows) => [...rows].sort((a, b) => b.avg_wait_min - a.avg_wait_min)[0];
-const maxBy = (rows, k) => Math.max(...rows.map((r) => r[k]));
 
 function weightedWait(rows) {
   const n = rows.reduce((s, r) => s + r.joins, 0);

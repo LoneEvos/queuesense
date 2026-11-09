@@ -35,13 +35,35 @@ test('recommend targets the 7am overload, since its backlog causes the 8am waits
   const [rec] = recommend(day);
   assert.equal(rec.hour, 7);
   assert.ok(rec.add_buses >= 1 && rec.add_buses <= 3);
-  assert.equal(rec.peak_hour, 8);
-  assert.ok(rec.peak_wait_after_min < rec.peak_wait_before_min - 3);
+  assert.equal(rec.impact_hour, 8); // the 8am joiners gain most once the 7am backlog clears
+  assert.ok(rec.wait_after_min < rec.wait_before_min - 3);
   assert.ok(rec.left_behind_after < rec.left_behind_before);
-  assert.ok(rec.person_hours_saved > 0);
+  assert.ok(rec.person_hours_saved >= 10);
+});
+
+test('a day with a morning and an evening overload gets a recommendation for each', () => {
+  const both = [
+    ...day,
+    { slot_date: '2026-11-09', dow: 'Mon', hour: 16, forecast_joins: 150, scheduled_buses: 5 },
+    { slot_date: '2026-11-09', dow: 'Mon', hour: 17, forecast_joins: 300, scheduled_buses: 5 },
+    { slot_date: '2026-11-09', dow: 'Mon', hour: 18, forecast_joins: 150, scheduled_buses: 5 },
+  ];
+  const recs = recommend(both);
+  assert.equal(recs.length, 2);
+  assert.deepEqual(recs.map((r) => r.hour < 12).sort(), [false, true]);
 });
 
 test('quiet days get no recommendation', () => {
   const quiet = day.map((d) => ({ ...d, forecast_joins: 40 }));
   assert.deepEqual(recommend(quiet), []);
+});
+
+test('accepts the API field name "date" and keeps days separate', () => {
+  const twoDays = [
+    ...day.map(({ slot_date, ...d }) => ({ ...d, date: '2026-11-09' })),
+    ...day.map(({ slot_date, ...d }) => ({ ...d, date: '2026-11-10', forecast_joins: 40 })),
+  ];
+  const recs = recommend(twoDays);
+  assert.equal(recs.length, 1);
+  assert.equal(recs[0].slot_date, '2026-11-09');
 });
