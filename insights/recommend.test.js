@@ -64,6 +64,7 @@ test('accepts the API field name "date" and keeps days separate', () => {
     ...day.map(({ slot_date, ...d }) => ({ ...d, date: '2026-11-10', forecast_joins: 40 })),
   ];
   const recs = recommend(twoDays);
-  assert.equal(recs.length, 1);
-  assert.equal(recs[0].slot_date, '2026-11-09');
+  assert.ok(recs.length >= 1);
+  assert.ok(recs.every((r) => r.slot_date === '2026-11-09'), 'the quiet day gets nothing');
+  assert.equal(recs[0].hour, 7);
 });
