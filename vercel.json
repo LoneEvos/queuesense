@@ -5,7 +5,7 @@
   "outputDirectory": "web/dist",
   "regions": ["sin1"],
   "functions": {
-    "api/index.js": { "includeFiles": "tags/tags.csv", "maxDuration": 10 }
+    "api/index.js": { "includeFiles": "{tags/tags.csv,sql/dispatch-snapshot.json}", "maxDuration": 10 }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },

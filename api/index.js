@@ -10,12 +10,32 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { createApp } from '../ingest/src/app.js';
 import { makeConfig } from '../ingest/src/config.js';
 import { ensureTags } from '../ingest/src/tags.js';
+import { getDispatch } from './_lib/dispatch.js';
 
 const server = express();
+const serviceAccount = (() => {
+  try {
+    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || 'null');
+  } catch {
+    return null;
+  }
+})();
+
+// Dispatcher dashboard data (aggregates of SIMULATED history). Works even before the tap
+// service is configured: it falls back to the committed snapshot.
+server.get('/api/dispatch', async (_req, res, next) => {
+  try {
+    const data = await getDispatch({ credentials: serviceAccount?.private_key ? serviceAccount : null });
+    res.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=3600');
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
 
 let setupError = null;
 try {
-  const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || 'null');
+  const sa = serviceAccount;
   if (!sa?.private_key) throw new Error('FIREBASE_SERVICE_ACCOUNT is not set');
   const config = makeConfig(process.env, {
     projectId: sa.project_id,

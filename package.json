@@ -8,10 +8,11 @@
     "tap": "node simulator/send-tap.js",
     "watch": "node simulator/watch-live.js",
     "rush": "node simulator/rush.js",
-    "test": "npm --prefix ingest test",
+    "test": "npm --prefix ingest test && node --test \"insights/*.test.js\"",
     "history": "node simulator/history.js"
   },
   "dependencies": {
+    "@google-cloud/bigquery": "^7.9.4",
     "express": "^4.21.2",
     "firebase-admin": "^13.0.2"
   },
