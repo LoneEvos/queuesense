@@ -8,6 +8,7 @@ export default defineConfig({
     port: 5173,
     fs: { allow: ['..'] },
     // Local ingest, so the app calls /api exactly like production (works from phones on the LAN too).
-    proxy: { '/api': 'http://127.0.0.1:8081' },
+    // API_PROXY=https://queuesense-coral.vercel.app npm run dev  -> use the live API instead.
+    proxy: { '/api': { target: process.env.API_PROXY || 'http://127.0.0.1:8081', changeOrigin: true } },
   },
 });
