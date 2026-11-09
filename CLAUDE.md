@@ -1,6 +1,6 @@
 # QueueSense
 
-APU shuttle bus queue intelligence. NTAG213 NFC stickers sit at the queue point, inside the bus door and at the driver seat. Students tap their own phone on a sticker; it opens our web app at /t/{tag_id}, which records QUEUE_JOIN, BUS_BOARD or BUS_DEPART. We match taps by an anonymous hashed ID to measure wait times, live queue length and left-behind counts, forecast demand, and recommend bus deployment. Built for the APU Cloud Innovation Hackathon 2026, Track 3 (Data-Driven Decision Making). Submission: 10 Nov 2026, 23:59 MYT.
+APU shuttle bus queue intelligence. NTAG213 NFC stickers sit at the queue point, inside the bus door and at the driver seat. Students tap their own phone on a sticker; it opens our web app at /t/{tag_id}, which records QUEUE_JOIN, BUS_BOARD or BUS_DEPART. We match taps by an anonymous hashed ID to measure wait times, live queue length and left-behind counts, forecast demand, and recommend bus deployment. Built for the APU Cloud Innovation Hackathon 2026, Track 3 (Data-Driven Decision Making). Prototype submission: 13 Nov 2026, 12:00 noon MYT (does not need Gemini Enterprise). Top 5 final pitch: 17 Nov 2026, must use Gemini Enterprise tools.
 
 Full context: the Project Context page in the team Notion. It is the source of truth. If a request conflicts with it, point out the conflict and ask whether to update it.
 
