@@ -1,5 +1,5 @@
 tag_id,tag_type,stop_id,bus_id,active,url
-stopA-q1,QUEUE,stopA,,true,https://queuesense-coral.vercel.app/t/stopA-q1
-bus01-door1,BUS,,bus01,true,https://queuesense-coral.vercel.app/t/bus01-door1
-bus01-door2,BUS,,bus01,true,https://queuesense-coral.vercel.app/t/bus01-door2
-bus01-driver,DRIVER,,bus01,true,https://queuesense-coral.vercel.app/t/bus01-driver
+stopA-q1,QUEUE,stopA,,true,https://queuesense-one.vercel.app/t/stopA-q1
+bus01-door1,BUS,,bus01,true,https://queuesense-one.vercel.app/t/bus01-door1
+bus01-door2,BUS,,bus01,true,https://queuesense-one.vercel.app/t/bus01-door2
+bus01-driver,DRIVER,,bus01,true,https://queuesense-one.vercel.app/t/bus01-driver

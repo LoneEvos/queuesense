@@ -39,7 +39,12 @@ export async function getDispatch({ credentials } = {}) {
     data = shape(await queryAll(credentials), 'bigquery');
   } catch (err) {
     console.warn(JSON.stringify({ severity: 'WARNING', msg: 'dispatch: using snapshot', err: String(err) }));
-    data = { ...readSnapshot(), source: 'snapshot' };
+    const s = readSnapshot();
+    // Re-shape so past days are dropped today too; keep the snapshot's own date in the footer.
+    data = {
+      ...shape({ kpis: [s.kpis], heatmap: s.heatmap, left_behind_daily: s.left_behind_daily, forecast: s.forecast }, 'snapshot'),
+      generated_at: s.generated_at,
+    };
   }
   cache = { at: Date.now(), data };
   return data;
@@ -57,11 +62,23 @@ async function queryAll(credentials) {
   return Object.fromEntries(entries);
 }
 
-/** Build the response: no service in a slot means no forecast demand there. */
-export function shape(raw, source) {
-  const forecast = raw.forecast.map((f) =>
+/** Today's date in Malaysia time (YYYY-MM-DD). Service days are Malaysia dates. */
+export const todayMYT = (now = Date.now()) => new Date(now + 8 * 3600 * 1000).toISOString().slice(0, 10);
+const addDays = (d, n) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+
+/**
+ * Build the response: no service in a slot means no forecast demand there.
+ * Only today and the next 6 days are shown and used for recommendations. If the stored forecast has
+ * no service day left in that window, the whole stored forecast is shown and flagged forecast_stale.
+ */
+export function shape(raw, source, today = todayMYT()) {
+  const all = raw.forecast.map((f) =>
     f.scheduled_buses > 0 ? f : { ...f, forecast_joins: 0, joins_low: 0, joins_high: 0, buses_needed: 0 },
   );
+  const end = addDays(today, 7);
+  const ahead = all.filter((f) => f.date >= today && f.date < end);
+  const stale = !ahead.some((f) => f.scheduled_buses > 0);
+  const forecast = stale ? all : ahead;
   return {
     source,
     generated_at: new Date().toISOString(),
@@ -70,6 +87,7 @@ export function shape(raw, source) {
     heatmap: raw.heatmap,
     left_behind_daily: raw.left_behind_daily,
     forecast,
+    forecast_stale: stale,
     recommendations: recommend(forecast),
   };
 }

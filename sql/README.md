@@ -20,7 +20,13 @@ dataset `queuesense` → Create table → Upload → Auto detect.
 ## Run order
 
 1. `01_views.sql`: `v_journeys`, `v_trips`, `v_wait_heatmap`, `v_kpis`, `v_left_behind_daily`, `v_bus_slots`
-2. `02_forecast.sql`: `v_demand_slots`, ARIMA_PLUS model `m_demand` (one daily series per hour slot, weekly seasonality), table `forecasts` (next 7 days)
+2. `02_forecast.sql`: `v_demand_slots`, ARIMA_PLUS model `m_demand` (one daily series per hour slot, weekly seasonality), table `forecasts` (next 14 days)
+
+## Refresh the forecast (no new data needed)
+
+The model is trained on history up to Sat 7 Nov, so the forecast starts Mon 9 Nov. The dashboard only shows today and the next 6 days, and warns when the forecast has run out.
+To extend it to 14 days (covers 9-22 Nov), run only the last statement of `02_forecast.sql` (`CREATE OR REPLACE TABLE queuesense.forecasts ...`) in the BigQuery console. The model does not need retraining.
+For a later week, regenerate history (`npm run history`), reload the CSVs, and run both files again.
 
 ## Check (seed 42, run 9 Nov 2026)
 

@@ -5,7 +5,7 @@
       "name": "web-live-api",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "web", "run", "dev"],
-      "env": { "API_PROXY": "https://queuesense-coral.vercel.app" },
+      "env": { "API_PROXY": "https://queuesense-one.vercel.app" },
       "port": 5173
     }
   ]

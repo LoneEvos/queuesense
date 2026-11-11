@@ -7,14 +7,14 @@ Rules for contributors and AI assistants: [CLAUDE.md](CLAUDE.md). Source of trut
 
 | Part | State |
 | --- | --- |
-| `/web` NFC simulator `/` | Built. Virtual stickers with real NTAG213 NDEF bytes + a virtual phone |
+| `/web` NFC simulator `/sim` | Built. Virtual stickers with real NTAG213 NDEF bytes + a virtual phone |
 | `/web` tap page `/t/:tagId` | Built. Anonymous auth, offline store-and-forward, shows your place (#21, about 1 min) and updates live |
-| `/web` live count `/live/:stopId` | Built. Queue length, wait estimate, last bus (boarded / left behind), real-time |
+| `/web` live count `/` and `/live/:stopId` | Built. Queue length, wait estimate, last bus (boarded / left behind), real-time |
 | `/ingest` | Built. Token check, tag registry, anti-spoof rules, salted hash, live queue + history in one Firestore transaction |
 | `/simulator` | `send-tap.js`, `rush.js` (200-500 student rush hour), `watch-live.js` |
 | `/simulator/history.js` | Built. 6 weeks of SIMULATED history (journeys, trips, queue snapshots) for BigQuery: `npm run history` |
 | `/sql` | Built. BigQuery sandbox views + BigQuery ML ARIMA_PLUS demand forecast. See [sql/README.md](sql/README.md) |
-| `/dispatch` | Built. KPIs, wait heatmap, 7-day forecast vs seats, bus recommendations, what-if slider, AI summary |
+| `/dispatch` | Built. KPIs, wait heatmap, 7-day forecast vs seats (today onwards), bus recommendations, what-if slider, AI summary. History is simulated; real taps feed the live count but are not yet exported to BigQuery |
 | `/insights` | Built. Recommender (`recommend.js`) and Gemini summary (`gemini.js`, optional key, template fallback). See [insights/README.md](insights/README.md) |
 
 `SIMULATION_MODE=true` (default) stamps `simulated: true` on every event. Set it to `false` once real taps count.
@@ -23,7 +23,7 @@ Tested locally: 500 students joined in 18 s, 13 buses boarded, 1,013 taps, 0 fai
 
 ## Run it locally (free, simulated NFC)
 
-Needs Node 20+ and Java 11+ (for the Firestore emulator). No cloud account or billing.
+Needs Node 22 and Java 11+ (for the Firestore emulator). No cloud account or billing.
 
 ```bash
 npm run setup
@@ -40,11 +40,15 @@ Phone on the same Wi-Fi: open `http://<your-PC-IP>:5173/sim`. The app calls `/ap
 
 ## Live deployment (free tier)
 
-- **Site:** https://queuesense-coral.vercel.app (live count), `/sim` (NFC simulator), `/t/{tag_id}` (sticker taps)
-- **Vercel (Hobby):** web app + `/api` ingest function (`api/index.js`, region `sin1`). Auto-deploys on every push to `main`.
-- **Firebase `queuesense-apu` (Spark):** Anonymous Auth, Firestore `asia-southeast1`, rules from `firestore.rules`.
-- **One secret, set in Vercel only:** `FIREBASE_SERVICE_ACCOUNT` = the Firebase service account JSON (Project settings → Service accounts → Generate new private key). Never commit it.
-- **Stickers:** write the URLs in [tags/tags.csv](tags/tags.csv) with NFC Tools (Add record → URL). Tags seed into Firestore automatically on the first tap.
+- **Site:** https://queuesense-one.vercel.app (live count), `/sim` (NFC simulator), `/dispatch` (dashboard), `/t/{tag_id}` (sticker taps). The original deployment, queuesense-coral.vercel.app, runs an older version from the upstream repo.
+- **Vercel (Hobby), Services:** `web` (Vite) serves every page; `api` (`api/index.js`, Express, region `sin1`) serves `/api/*`. See `vercel.json`. Auto-deploys on every push to `main`.
+- **Firebase `queuesense-apu` (Spark):** Anonymous Auth, Firestore `asia-southeast1`, rules from `firestore.rules`. Web config in `web/.env.production`.
+- **BigQuery sandbox:** dataset `queuesense`, see [sql/README.md](sql/README.md). The forecast covers 14 days from the last history day; the dashboard shows today onwards and warns when it runs out.
+- **Secrets, set in Vercel only (never commit them):**
+  - `FIREBASE_SERVICE_ACCOUNT` (required) = the Firebase service account JSON (Project settings → Service accounts → Generate new private key). Also used for BigQuery.
+  - `GEMINI_API_KEY` (optional) = free key from Google AI Studio for the AI summary on `/dispatch`; without it a template summary is shown. `GEMINI_MODEL` optionally overrides the model list.
+  - `HASH_SALT` (optional) = by default derived from the service account key. If two deployments share one Firestore, set the same value on both so a student gets the same anonymous ID on each.
+- **Stickers:** write the URLs in [tags/tags.csv](tags/tags.csv) (queuesense-one) with NFC Tools (Add record → URL). Stickers written earlier point to queuesense-coral; rewrite them. Tags seed into Firestore automatically on the first tap.
 
 ## Notes
 

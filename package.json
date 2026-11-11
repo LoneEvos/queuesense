@@ -8,7 +8,7 @@
     "tap": "node simulator/send-tap.js",
     "watch": "node simulator/watch-live.js",
     "rush": "node simulator/rush.js",
-    "test": "npm --prefix ingest test && node --test \"insights/*.test.js\"",
+    "test": "npm --prefix ingest test && node --test \"insights/*.test.js\" \"api/_lib/*.test.js\"",
     "history": "node simulator/history.js"
   },
   "dependencies": {

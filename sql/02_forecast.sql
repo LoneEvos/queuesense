@@ -35,6 +35,7 @@ OPTIONS (
 SELECT hour, day_ts, joins FROM queuesense.v_demand_slots;
 
 -- Forecast table (re-run to refresh). Negative forecasts are clipped to 0.
+-- 14 days ahead so one run covers the demo week and the week after; the API shows only today onwards.
 CREATE OR REPLACE TABLE queuesense.forecasts AS
 SELECT
   'stopA' AS stop_id,
@@ -48,4 +49,4 @@ SELECT
   -- Buses needed to carry the forecast demand in that hour (40 seats each).
   CAST(CEIL(GREATEST(0, forecast_value) / 40) AS INT64) AS buses_needed,
   TRUE AS simulated
-FROM ML.FORECAST(MODEL queuesense.m_demand, STRUCT(7 AS horizon, 0.8 AS confidence_level));
+FROM ML.FORECAST(MODEL queuesense.m_demand, STRUCT(14 AS horizon, 0.8 AS confidence_level));

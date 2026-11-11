@@ -48,9 +48,15 @@ export default function Dispatch() {
 
       <p className="simnote">
         <strong>Simulated history.</strong> {data.kpis.journeys.toLocaleString()} journeys and {data.kpis.trips.toLocaleString()} bus
-        trips, {fmtDate(data.kpis.from_date)} – {fmtDate(data.kpis.to_date)}, generated to show how the system works. Live taps
-        will replace it once the stickers are in use.
+        trips, {fmtDate(data.kpis.from_date)} – {fmtDate(data.kpis.to_date)}, generated to show how the system works. Real taps
+        already drive the live queue count; loading them into this history is the next step.
       </p>
+      {data.forecast_stale && (
+        <p className="simnote">
+          <strong>Forecast out of date.</strong> The stored forecast has no days left from today. Showing the last forecast
+          week; re-run <code>sql/02_forecast.sql</code> in BigQuery to refresh it.
+        </p>
+      )}
 
       <Kpis k={data.kpis} />
       <Insights />
@@ -148,7 +154,7 @@ function Recommendations({ recs }) {
   const [top, ...rest] = recs;
   return (
     <section className="panel" aria-labelledby="rec-h">
-      <h2 id="rec-h">Recommendation for this week</h2>
+      <h2 id="rec-h">Top recommendation, next 7 days</h2>
       <div className="rec">
         <p className="rec-main">
           Add <strong>{top.add_buses} bus{top.add_buses > 1 ? 'es' : ''}</strong> at{' '}
@@ -172,7 +178,9 @@ function Recommendations({ recs }) {
       </div>
       {rest.length > 0 && (
         <details className="more">
-          <summary>{rest.length} more changes this week</summary>
+          <summary>
+            {rest.length} more change{rest.length > 1 ? 's' : ''} in the next 7 days
+          </summary>
           <ul className="reclist">
             {rest.map((r) => (
               <li key={r.slot_date + r.hour}>
