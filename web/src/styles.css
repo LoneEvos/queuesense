@@ -198,6 +198,12 @@ button.secondary {
 .kpi .val small { font-size: 0.9rem; font-weight: 600; color: var(--muted); margin-left: 4px; }
 
 .rec { border-left: 4px solid var(--series-1); padding-left: 14px; margin-top: 10px; }
+.ai-head { display: flex; align-items: center; gap: 8px; }
+.ai-head h2 { margin: 0; }
+.ai-headline { font-size: 1.1rem; font-weight: 600; line-height: 1.45; margin: 10px 0 6px; }
+.ai-points { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 4px; line-height: 1.5; }
+.ai-action { display: grid; gap: 2px; line-height: 1.45; }
+.ai-action .lbl { color: var(--muted); font-size: 0.8rem; }
 .rec-main { font-size: 1.15rem; margin: 0 0 12px; line-height: 1.45; }
 .rec-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0; }
 @media (max-width: 760px) { .rec-nums { grid-template-columns: 1fr; } }

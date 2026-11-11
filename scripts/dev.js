@@ -93,8 +93,11 @@ if (busy.length) {
   process.exit(1);
 }
 
-const firebaseBin =join(root, 'node_modules', '.bin', isWin ? 'firebase.cmd' : 'firebase');
-run('emu', `"${firebaseBin}"`, ['emulators:start', '--only', 'auth,firestore', '--project', 'demo-queuesense'], {
+// firebase-tools is not a project dependency (it would bloat the Vercel deploy). Use a local copy if there
+// is one, otherwise npx fetches it once into its cache.
+const firebaseBin = join(root, 'node_modules', '.bin', isWin ? 'firebase.cmd' : 'firebase');
+const [emuCmd, ...emuPre] = existsSync(firebaseBin) ? [`"${firebaseBin}"`] : ['npx', '--yes', 'firebase-tools@14'];
+run('emu', emuCmd, [...emuPre, 'emulators:start', '--only', 'auth,firestore', '--project', 'demo-queuesense'], {
   env,
 });
 

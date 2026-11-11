@@ -7,6 +7,7 @@ import { makeConfig } from './config.js';
 import { createApp } from './app.js';
 import { ensureTags } from './tags.js';
 import { getDispatch } from '../../api/_lib/dispatch.js';
+import { getInsights } from '../../insights/gemini.js';
 
 // Emulators are picked up automatically from FIREBASE_AUTH_EMULATOR_HOST and FIRESTORE_EMULATOR_HOST.
 const config = makeConfig();
@@ -18,6 +19,8 @@ console.log(JSON.stringify({ severity: 'INFO', msg: 'tags seeded', added: await 
 const server = express();
 // Local: no BigQuery credentials, so the dashboard reads sql/dispatch-snapshot.json.
 server.get('/api/dispatch', async (_req, res) => res.json(await getDispatch()));
+// Gemini summary: set GEMINI_API_KEY in ingest/.env.local to use Gemini; otherwise a fixed template.
+server.get('/api/insights', async (_req, res) => res.json(await getInsights(await getDispatch())));
 server.use('/api', createApp({ verifyIdToken: (t) => auth.verifyIdToken(t), db, config }));
 server.listen(config.port, () => {
   console.log(

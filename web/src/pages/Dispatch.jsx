@@ -53,6 +53,7 @@ export default function Dispatch() {
       </p>
 
       <Kpis k={data.kpis} />
+      <Insights />
       <Recommendations recs={data.recommendations} />
       <Heatmap cells={data.heatmap} />
       <ForecastAndWhatIf forecast={data.forecast} recs={data.recommendations} />
@@ -85,6 +86,58 @@ function Kpis({ k }) {
           {t.note && <span className="muted small">{t.note}</span>}
         </div>
       ))}
+    </section>
+  );
+}
+
+// ---------- AI summary (Gemini, server-side) ----------
+// Loads on its own so a slow Gemini call never holds up the rest of the dashboard.
+function Insights() {
+  const [ai, setAi] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/insights')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(setAi, () => setFailed(true));
+  }, []);
+
+  if (failed) return null;
+  return (
+    <section className="panel" aria-labelledby="ai-h" aria-busy={!ai}>
+      <div className="ai-head">
+        <h2 id="ai-h">AI summary</h2>
+        <span className="badge">SIMULATED</span>
+      </div>
+      {!ai ? (
+        <p className="muted">Asking Gemini for a summary…</p>
+      ) : (
+        <>
+          <p className="ai-headline">{ai.headline}</p>
+          <ul className="ai-points">
+            {ai.points.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+          <p className="rec ai-action">
+            <span className="lbl">Suggested action</span>
+            {ai.action}
+          </p>
+          {ai.unchecked_numbers?.length > 0 && (
+            <p className="warn small">
+              Check before acting: {ai.unchecked_numbers.join(', ')} {ai.unchecked_numbers.length > 1 ? 'are' : 'is'} not in the data
+              Gemini was given.
+            </p>
+          )}
+          <p className="muted small">
+            {ai.source === 'gemini'
+              ? `Written by Gemini (${ai.model}) from the aggregate numbers on this page. ${
+                  ai.unchecked_numbers?.length ? '' : 'Every number checked against the data. '
+                }The recommendation itself comes from the forecast replay, not the AI.`
+              : `${ai.reason}, so this is a fixed summary built from the same numbers.`}
+          </p>
+        </>
+      )}
     </section>
   );
 }

@@ -12,7 +12,10 @@ Rules for contributors and AI assistants: [CLAUDE.md](CLAUDE.md). Source of trut
 | `/web` live count `/live/:stopId` | Built. Queue length, wait estimate, last bus (boarded / left behind), real-time |
 | `/ingest` | Built. Token check, tag registry, anti-spoof rules, salted hash, live queue + history in one Firestore transaction |
 | `/simulator` | `send-tap.js`, `rush.js` (200-500 student rush hour), `watch-live.js` |
-| `/dispatch`, `/sql` (BigQuery forecast), `/insights` (Gemini) | Not built yet |
+| `/simulator/history.js` | Built. 6 weeks of SIMULATED history (journeys, trips, queue snapshots) for BigQuery: `npm run history` |
+| `/sql` | Built. BigQuery sandbox views + BigQuery ML ARIMA_PLUS demand forecast. See [sql/README.md](sql/README.md) |
+| `/dispatch` | Built. KPIs, wait heatmap, 7-day forecast vs seats, bus recommendations, what-if slider, AI summary |
+| `/insights` | Built. Recommender (`recommend.js`) and Gemini summary (`gemini.js`, optional key, template fallback). See [insights/README.md](insights/README.md) |
 
 `SIMULATION_MODE=true` (default) stamps `simulated: true` on every event. Set it to `false` once real taps count.
 
@@ -31,6 +34,7 @@ npm run dev
 - http://localhost:5173/sim is the **NFC simulator**: tap a virtual sticker and the virtual phone opens the tap page.
 - `npm run rush` (second terminal) sends a 300-student rush hour. Options: `npm run rush -- --students 500 --bus 40`.
 - `npm run tap -- stopA-q1 bus01-door1 --students 3` sends individual taps.
+- http://localhost:5173/dispatch is the **dispatcher dashboard** (simulated history from `sql/dispatch-snapshot.json`). Add `GEMINI_API_KEY` to `ingest/.env.local` for the Gemini summary.
 
 Phone on the same Wi-Fi: open `http://<your-PC-IP>:5173/sim`. The app calls `/api` through the Vite proxy, so no extra config.
 
