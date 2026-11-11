@@ -162,20 +162,24 @@ export async function getInsights(dispatch, env = process.env, { fetchImpl } = {
   if (cache && Date.now() - cache.at < cache.ttl) return cache.data;
   const facts = buildFacts(dispatch);
   const base = { simulated: true, generated_at: new Date().toISOString(), data_source: dispatch.source };
+  // Pasted or imported keys often carry quotes, spaces or a newline; Google rejects those.
+  const apiKey = (env.GEMINI_API_KEY ?? '').trim().replace(/^["']|["']$/g, '').trim();
   let data;
-  if (!env.GEMINI_API_KEY) {
+  if (!apiKey) {
     data = { ...base, source: 'template', reason: 'Gemini is not set up', ...templateSummary(facts) };
   } else {
     try {
       const { summary, model } = await askGemini(facts, {
-        apiKey: env.GEMINI_API_KEY,
-        model: env.GEMINI_MODEL || DEFAULT_MODEL,
+        apiKey,
+        model: (env.GEMINI_MODEL || '').trim() || DEFAULT_MODEL,
         fetchImpl,
       });
       data = { ...base, source: 'gemini', model, unchecked_numbers: uncheckedNumbers(summary, facts), ...summary };
     } catch (err) {
       console.warn(JSON.stringify({ severity: 'WARNING', msg: 'insights: using template', err: String(err) }));
-      data = { ...base, source: 'template', reason: 'Gemini did not answer', ...templateSummary(facts) };
+      // Google's error text (e.g. "API key not valid", "model not found") helps fix setup; never echo the key.
+      const error = String(err.message || err).split(apiKey).join('***').slice(0, 300);
+      data = { ...base, source: 'template', reason: 'Gemini did not answer', error, ...templateSummary(facts) };
     }
   }
   cache = { at: Date.now(), ttl: data.source === 'gemini' ? TTL_OK_MS : TTL_FALLBACK_MS, data };

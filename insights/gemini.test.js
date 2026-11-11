@@ -71,4 +71,11 @@ test('Gemini error falls back to the template', async () => {
   const r = await getInsights(snapshot, { GEMINI_API_KEY: 'k' }, { fetchImpl });
   assert.equal(r.source, 'template');
   assert.equal(r.reason, 'Gemini did not answer');
+  assert.match(r.error, /429/);
+});
+
+test('quoted key with a newline is cleaned before use', async () => {
+  const { fetchImpl, calls } = fakeGemini({ headline: 'h', points: ['p'], action: 'a' });
+  await getInsights(snapshot, { GEMINI_API_KEY: ' "abc123"\n' }, { fetchImpl });
+  assert.equal(calls[0].init.headers['x-goog-api-key'], 'abc123');
 });
