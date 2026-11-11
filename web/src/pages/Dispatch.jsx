@@ -23,15 +23,34 @@ const binOf = (m) => BINS.find((b) => m < b.max);
 export default function Dispatch() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    setError(null);
     fetch('/api/dispatch')
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setData, (e) => setError(String(e.message || e)));
-  }, []);
+  }, [attempt]);
 
-  if (error) return <main className="dash"><p className="warn">Could not load the dashboard: {error}</p></main>;
+  if (error && !data) {
+    return (
+      <main className="dash">
+        <section className="errstate" role="alert">
+          <h2>The dashboard data didn't load</h2>
+          <p>The analytics server didn't answer ({error}). The live queue and taps are not affected.</p>
+          <button className="secondary" onClick={() => setAttempt((a) => a + 1)}>
+            Try again
+          </button>
+          <Link to="/">Open the live queue</Link>
+        </section>
+      </main>
+    );
+  }
   if (!data) return <main className="dash"><p className="muted">Loading the dashboard…</p></main>;
+  const k = data.kpis;
+  const heatmap = data.heatmap ?? [];
+  const forecast = data.forecast ?? [];
+  const recs = data.recommendations ?? [];
 
   return (
     <main className="dash viz">
@@ -47,9 +66,11 @@ export default function Dispatch() {
       </header>
 
       <p className="simnote">
-        <strong>Simulated history.</strong> {data.kpis.journeys.toLocaleString()} journeys and {data.kpis.trips.toLocaleString()} bus
-        trips, {fmtDate(data.kpis.from_date)} – {fmtDate(data.kpis.to_date)}, generated to show how the system works. Real taps
-        already drive the live queue count; loading them into this history is the next step.
+        <strong>Simulated history.</strong>{' '}
+        {k?.journeys
+          ? `${k.journeys.toLocaleString()} journeys and ${(k.trips ?? 0).toLocaleString()} bus trips, ${fmtDate(k.from_date)} – ${fmtDate(k.to_date)}, generated to show how the system works.`
+          : 'No history loaded yet.'}{' '}
+        Real taps already drive the live queue count; loading them into this history is the next step.
       </p>
       {data.forecast_stale && (
         <p className="simnote">
@@ -58,11 +79,21 @@ export default function Dispatch() {
         </p>
       )}
 
-      <Kpis k={data.kpis} />
+      {k ? <Kpis k={k} /> : <Empty title="No key numbers yet">They appear once there is wait history to measure.</Empty>}
       <Insights />
-      <Recommendations recs={data.recommendations} />
-      <Heatmap cells={data.heatmap} />
-      <ForecastAndWhatIf forecast={data.forecast} recs={data.recommendations} />
+      <Recommendations recs={recs} hasForecast={forecast.some((f) => f.scheduled_buses > 0)} />
+      {heatmap.length ? (
+        <Heatmap cells={heatmap} />
+      ) : (
+        <Empty title="Average wait by day and hour">No wait history yet, so there is nothing to map.</Empty>
+      )}
+      {forecast.some((f) => f.scheduled_buses > 0) ? (
+        <ForecastAndWhatIf forecast={forecast} recs={recs} />
+      ) : (
+        <Empty title="Forecast demand and bus capacity">
+          No forecast for the coming days. Run <code>sql/02_forecast.sql</code> in BigQuery to create one.
+        </Empty>
+      )}
 
       <p className="muted small">
         Data: BigQuery ({data.source === 'snapshot' ? 'saved snapshot' : 'live query'}) · forecast: BigQuery ML ARIMA_PLUS ·
@@ -148,9 +179,24 @@ function Insights() {
   );
 }
 
+function Empty({ title, children }) {
+  return (
+    <section className="panel" role="status">
+      <h2>{title}</h2>
+      <p className="muted">{children}</p>
+    </section>
+  );
+}
+
 // ---------- Recommendations ----------
-function Recommendations({ recs }) {
-  if (!recs.length) return null;
+function Recommendations({ recs, hasForecast }) {
+  if (!recs.length) {
+    return hasForecast ? (
+      <Empty title="Top recommendation, next 7 days">
+        No extra buses needed: the timetable carries the forecast demand without long waits.
+      </Empty>
+    ) : null;
+  }
   const [top, ...rest] = recs;
   return (
     <section className="panel" aria-labelledby="rec-h">

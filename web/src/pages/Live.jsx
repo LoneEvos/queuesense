@@ -5,7 +5,7 @@ import { formatMYT } from '../tags.js';
 // Student-facing live counter for a stop. Aggregates only.
 export default function Live() {
   const { stopId = 'stopA' } = useParams();
-  const { loading, data } = useStop(stopId);
+  const { loading, data, error } = useStop(stopId);
   const name = `Stop ${stopId.replace(/^stop/, '')}`;
   const n = data?.queue_length ?? 0;
 
@@ -25,6 +25,11 @@ export default function Live() {
 
       {loading ? (
         <p className="muted">Connecting…</p>
+      ) : error ? (
+        <section className="errstate" role="alert">
+          <h2>Can't reach the live count right now</h2>
+          <p>This page keeps trying by itself. Taps at the stop are still saved on each phone and sent when the server is back.</p>
+        </section>
       ) : (
         <>
           <section className="counter" aria-live="polite">
@@ -52,6 +57,7 @@ export default function Live() {
             </div>
           </dl>
 
+          {!data && <p className="muted">No taps at this stop yet today. The count starts with the first tap.</p>}
           <p className="hint">Tap your phone on the QueueSense sticker at the stop to join. No app, no login.</p>
           {data?.updated_at && <p className="muted small">Last tap {formatMYT(data.updated_at)} · Malaysia time</p>}
         </>

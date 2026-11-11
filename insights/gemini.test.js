@@ -95,3 +95,10 @@ test('quoted key with a newline is cleaned before use', async () => {
   await getInsights(snapshot, { GEMINI_API_KEY: ' "abc123"\n' }, { fetchImpl });
   assert.equal(calls[0].init.headers['x-goog-api-key'], 'abc123');
 });
+
+test('empty dashboard data still gives a summary, no crash', () => {
+  const f = buildFacts({ source: 'snapshot', kpis: null, heatmap: [], left_behind_daily: [], forecast: [], recommendations: [] });
+  const s = templateSummary(f);
+  assert.ok(s.headline.length > 0);
+  assert.match(s.action, /Keep the current timetable/);
+});

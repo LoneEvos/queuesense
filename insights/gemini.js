@@ -16,7 +16,7 @@ const TTL_FALLBACK_MS = 5 * 60 * 1000; // retry Gemini sooner after a failure
 
 const fmtH = (h) => `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? 'am' : 'pm'}`;
 const fmtDate = (d) =>
-  new Date(`${d}T00:00:00+08:00`).toLocaleDateString('en-MY', {
+  !d ? null : new Date(`${d}T00:00:00+08:00`).toLocaleDateString('en-MY', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -25,8 +25,16 @@ const fmtDate = (d) =>
 const CAPACITY = 40;
 
 /** The only data Gemini sees: aggregates from the dashboard response. */
-export function buildFacts(d) {
-  const k = d.kpis;
+export function buildFacts(input) {
+  // Missing pieces (no history, no forecast yet) become empty lists, so the summary never crashes.
+  const d = {
+    ...input,
+    heatmap: input.heatmap ?? [],
+    left_behind_daily: input.left_behind_daily ?? [],
+    forecast: input.forecast ?? [],
+    recommendations: input.recommendations ?? [],
+  };
+  const k = d.kpis ?? {};
   const slots = [...d.heatmap].sort((a, b) => b.avg_wait_min - a.avg_wait_min);
   const days = [...new Set(d.forecast.filter((f) => f.scheduled_buses > 0).map((f) => f.date))];
   return {

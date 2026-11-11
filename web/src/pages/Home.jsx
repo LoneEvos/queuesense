@@ -24,7 +24,8 @@ export default function Home() {
   const [reading, setReading] = useState(null);
   const [student, setStudent] = useState(1);
   const [log, setLog] = useState([]);
-  const { data: stopA } = useStop('stopA');
+  const { data: stopA, error: stopError } = useStop('stopA');
+  const [simError, setSimError] = useState(null);
   const phoneRef = useRef(null);
 
   // The tap page inside the phone reports each result back here.
@@ -54,9 +55,14 @@ export default function Home() {
   }
 
   async function newStudent() {
-    await becomeNewStudent();
-    setStudent((s) => s + 1);
-    setPhoneUrl(null);
+    try {
+      await becomeNewStudent();
+      setSimError(null);
+      setStudent((s) => s + 1);
+      setPhoneUrl(null);
+    } catch {
+      setSimError("Couldn't switch to a new student (sign-in failed). Check the connection and try again.");
+    }
   }
 
   return (
@@ -70,16 +76,31 @@ export default function Home() {
         </nav>
       </header>
       <p className="muted">
-        Virtual NFC stickers. Tap one with the phone to send the same request a real sticker tap will.
+        Virtual NFC stickers. Tap one with the phone to send the same request a real sticker tap will. One-sticker
+        demo: tap <strong>Join queue</strong>, then tap it again after 30 seconds to get “Boarding now?”.
       </p>
 
       <a className="simcount" href="/" target="_blank" rel="noreferrer">
-        <span className="num">{stopA?.queue_length ?? 0}</span>
-        <span>in the queue at Stop A{stopA?.est_wait_min ? ` · about ${stopA.est_wait_min} min wait` : ''} · open live view</span>
+        {stopError ? (
+          <span className="warn">Live count unavailable right now, retrying… Taps still work and are saved.</span>
+        ) : (
+          <>
+            <span className="num">{stopA?.queue_length ?? 0}</span>
+            <span>
+              in the queue at Stop A{stopA?.est_wait_min ? ` · about ${stopA.est_wait_min} min wait` : ''} · open live view
+            </span>
+          </>
+        )}
       </a>
+      {simError && (
+        <p className="warn" role="alert">
+          {simError}
+        </p>
+      )}
 
       <div className="simgrid">
         <section aria-label="Stickers">
+          {stickers.length === 0 && <p className="muted">No stickers found in tags/tags.csv.</p>}
           <ul className="tags">
             {stickers.map((s) => (
               <li key={s.tag_id}>

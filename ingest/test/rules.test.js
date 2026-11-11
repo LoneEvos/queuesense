@@ -86,3 +86,39 @@ test('rate limit per ID', () => {
   const later = applyAntiSpoof({ eventType: 'BUS_DEPART', eventMs: NOW + 2 * MIN, nowMs: NOW + 2 * MIN, state });
   assert.equal(later.reject, undefined);
 });
+
+test('queue sticker means board only with action "board"; bus and driver stickers ignore action', () => {
+  assert.equal(eventTypeForTag({ tag_type: 'QUEUE' }, 'board'), 'BUS_BOARD');
+  assert.equal(eventTypeForTag({ tag_type: 'QUEUE' }, null), 'QUEUE_JOIN');
+  assert.equal(eventTypeForTag({ tag_type: 'BUS' }, 'board'), 'BUS_BOARD');
+  assert.equal(eventTypeForTag({ tag_type: 'DRIVER' }, 'board'), 'BUS_DEPART');
+  const id = '0b6f8a3e-2a1c-4c3e-9b1a-2f3d4e5f6a7b';
+  assert.equal(parseTapBody({ event_id: id, tag_id: 'stopA-q1', action: 'board' }).value.action, 'board');
+  assert.equal(parseTapBody({ event_id: id, tag_id: 'stopA-q1' }).value.action, null);
+  assert.ok(parseTapBody({ event_id: id, tag_id: 'stopA-q1', action: 'depart' }).error);
+});
+
+test('repeat board or depart on the same sticker within 30 s is ignored; joins are not', () => {
+  const join = applyAntiSpoof({ eventType: 'QUEUE_JOIN', eventMs: NOW, nowMs: NOW, state: null, tagId: 'stopA-q1' });
+  // Board at the same stop sticker 40 s later: a different meaning, so it counts.
+  const b1 = applyAntiSpoof({ eventType: 'BUS_BOARD', eventMs: NOW + 40_000, nowMs: NOW + 40_000, state: join.nextState, tagId: 'stopA-q1' });
+  assert.equal(b1.repeat, undefined);
+  assert.equal(b1.flagged, false);
+  // Same board again 10 s later: ignored.
+  const b2 = applyAntiSpoof({ eventType: 'BUS_BOARD', eventMs: NOW + 50_000, nowMs: NOW + 50_000, state: b1.nextState, tagId: 'stopA-q1' });
+  assert.equal(b2.repeat, true);
+  // 31 s after the first board: counts again (flagged, the join was used up).
+  const b3 = applyAntiSpoof({ eventType: 'BUS_BOARD', eventMs: NOW + 71_000, nowMs: NOW + 71_000, state: b1.nextState, tagId: 'stopA-q1' });
+  assert.equal(b3.repeat, undefined);
+  assert.equal(b3.flagged, true);
+  const d1 = applyAntiSpoof({ eventType: 'BUS_DEPART', eventMs: NOW, nowMs: NOW, state: null, tagId: 'bus01-driver' });
+  assert.equal(applyAntiSpoof({ eventType: 'BUS_DEPART', eventMs: NOW + 5000, nowMs: NOW + 5000, state: d1.nextState, tagId: 'bus01-driver' }).repeat, true);
+});
+
+test('bus tap with no queue entry is still a boarding, flagged', () => {
+  const r = applyAntiSpoof({ eventType: 'BUS_BOARD', eventMs: NOW, nowMs: NOW, state: null, tagId: 'bus01-door1' });
+  assert.equal(r.reject, undefined);
+  assert.equal(r.repeat, undefined);
+  assert.equal(r.flagged, true);
+  assert.equal(r.flag_reason, 'BOARD_WITHOUT_JOIN');
+});
