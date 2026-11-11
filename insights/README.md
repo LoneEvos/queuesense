@@ -8,7 +8,7 @@
 1. `buildFacts()` takes the dashboard data and keeps only aggregates (KPIs, longest and shortest waits, worst left-behind days, the 7-day forecast peaks, the top 3 recommendations). No IDs, no per-person rows. All of it is SIMULATED.
 2. `askGemini()` sends those facts to the Gemini API (REST, no SDK) and asks for JSON: `headline`, `points`, `action`. The prompt tells it to copy numbers, not compute new ones.
 3. `uncheckedNumbers()` checks every number in the answer against the facts. Anything not found shows on the dashboard as "Check before acting".
-4. No key, a timeout (15 s) or any error: `templateSummary()` writes the same summary from a fixed template, so the demo never breaks.
+4. No key, a timeout (50 s) or any error: `templateSummary()` writes the same summary from a fixed template, so the demo never breaks.
 
 The answer is cached in memory for 1 hour (5 min after a failure) and on the Vercel CDN, so the free-tier quota is not a concern.
 

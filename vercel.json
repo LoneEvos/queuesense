@@ -8,7 +8,7 @@
       "entrypoint": "api/index.js",
       "installCommand": "npm install --omit=dev",
       "functions": {
-        "api/index.js": { "includeFiles": "{tags/tags.csv,sql/dispatch-snapshot.json}", "maxDuration": 20 }
+        "api/index.js": { "includeFiles": "{tags/tags.csv,sql/dispatch-snapshot.json}", "maxDuration": 60 }
       }
     },
     "web": {

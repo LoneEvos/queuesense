@@ -6,7 +6,8 @@
 // No key or a failed call -> a fixed template built from the same facts, so the demo always works.
 
 const DEFAULT_MODEL = 'gemini-flash-latest'; // Google's moving alias; override with GEMINI_MODEL
-const TIMEOUT_MS = 15_000;
+// Current Flash models "think" before answering; 15 s was too short in production. Vercel maxDuration is 60 s.
+const TIMEOUT_MS = 50_000;
 const TTL_OK_MS = 60 * 60 * 1000; // 1 h: the history changes once a day at most
 const TTL_FALLBACK_MS = 5 * 60 * 1000; // retry Gemini sooner after a failure
 
