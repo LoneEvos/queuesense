@@ -5,8 +5,11 @@
 // Every number Gemini writes is checked against the facts; anything not found is reported as unchecked.
 // No key or a failed call -> a fixed template built from the same facts, so the demo always works.
 
-const DEFAULT_MODEL = 'gemini-flash-latest'; // Google's moving alias; override with GEMINI_MODEL
-// Current Flash models "think" before answering; 15 s was too short in production. Vercel maxDuration is 60 s.
+// Tried in order: if one is overloaded (503), rate-limited (429), missing (404) or slow, the next one is tried.
+// Override with GEMINI_MODEL (one name or a comma-separated list).
+const DEFAULT_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest'];
+const DEFAULT_MODEL = DEFAULT_MODELS[0];
+// Total time for all attempts. Flash models "think" before answering; Vercel maxDuration is 60 s.
 const TIMEOUT_MS = 50_000;
 const TTL_OK_MS = 60 * 60 * 1000; // 1 h: the history changes once a day at most
 const TTL_FALLBACK_MS = 5 * 60 * 1000; // retry Gemini sooner after a failure
@@ -169,18 +172,26 @@ export async function getInsights(dispatch, env = process.env, { fetchImpl } = {
   if (!apiKey) {
     data = { ...base, source: 'template', reason: 'Gemini is not set up', ...templateSummary(facts) };
   } else {
-    try {
-      const { summary, model } = await askGemini(facts, {
-        apiKey,
-        model: (env.GEMINI_MODEL || '').trim() || DEFAULT_MODEL,
-        fetchImpl,
-      });
-      data = { ...base, source: 'gemini', model, unchecked_numbers: uncheckedNumbers(summary, facts), ...summary };
-    } catch (err) {
-      console.warn(JSON.stringify({ severity: 'WARNING', msg: 'insights: using template', err: String(err) }));
-      // Google's error text (e.g. "API key not valid", "model not found") helps fix setup; never echo the key.
-      const error = String(err.message || err).split(apiKey).join('***').slice(0, 300);
-      data = { ...base, source: 'template', reason: 'Gemini did not answer', error, ...templateSummary(facts) };
+    const models = (env.GEMINI_MODEL || '').split(',').map((m) => m.trim()).filter(Boolean);
+    const deadline = Date.now() + TIMEOUT_MS;
+    const errors = [];
+    for (const model of models.length ? models : DEFAULT_MODELS) {
+      const left = deadline - Date.now();
+      if (left < 3000) break;
+      try {
+        const { summary, model: used } = await askGemini(facts, { apiKey, model, fetchImpl, timeoutMs: left });
+        data = { ...base, source: 'gemini', model: used, unchecked_numbers: uncheckedNumbers(summary, facts), ...summary };
+        break;
+      } catch (err) {
+        console.warn(JSON.stringify({ severity: 'WARNING', msg: 'insights: model failed', model, err: String(err) }));
+        // Google's error text (e.g. "API key not valid", "high demand") helps fix setup; never echo the key.
+        errors.push(`${model}: ${String(err.message || err).split(apiKey).join('***').replace(/\s+/g, ' ').slice(0, 200)}`);
+        if (/HTTP (400|401|403)\b/.test(String(err))) break; // bad key: other models will fail the same way
+      }
+    }
+    if (!data) {
+      console.warn(JSON.stringify({ severity: 'WARNING', msg: 'insights: using template' }));
+      data = { ...base, source: 'template', reason: 'Gemini did not answer', error: errors.join(' | '), ...templateSummary(facts) };
     }
   }
   cache = { at: Date.now(), ttl: data.source === 'gemini' ? TTL_OK_MS : TTL_FALLBACK_MS, data };

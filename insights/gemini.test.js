@@ -74,6 +74,22 @@ test('Gemini error falls back to the template', async () => {
   assert.match(r.error, /429/);
 });
 
+test('an overloaded model falls through to the next one', async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    calls.push(url);
+    if (calls.length === 1) return { ok: false, status: 503, text: async () => 'high demand' };
+    return {
+      ok: true,
+      json: async () => ({ modelVersion: 'backup', candidates: [{ content: { parts: [{ text: '{"headline":"h","points":["p"],"action":"a"}' }] } }] }),
+    };
+  };
+  const r = await getInsights(snapshot, { GEMINI_API_KEY: 'k' }, { fetchImpl });
+  assert.match(calls[0], /gemini-3\.6-flash/);
+  assert.equal(r.source, 'gemini');
+  assert.equal(r.model, 'backup');
+});
+
 test('quoted key with a newline is cleaned before use', async () => {
   const { fetchImpl, calls } = fakeGemini({ headline: 'h', points: ['p'], action: 'a' });
   await getInsights(snapshot, { GEMINI_API_KEY: ' "abc123"\n' }, { fetchImpl });
