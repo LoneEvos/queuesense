@@ -88,6 +88,8 @@ button.secondary {
 .sim { max-width: 980px; margin: 0 auto; padding: 24px 16px; }
 .simhead { display: flex; align-items: center; gap: 10px; }
 .simhead h1 { margin: 0; }
+.simhead { flex-wrap: wrap; }
+.simnav { margin-left: auto; }
 .simgrid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; margin-top: 16px; align-items: start; }
 @media (max-width: 760px) { .simgrid { grid-template-columns: 1fr; } }
 .sticker {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { becomeNewStudent } from '../firebase.js';
 import { decodeUriSticker, encodeUriSticker, NTAG213_USER_BYTES, toHex } from '../ndef.js';
 import { formatMYT, TAG_LABEL, TAGS } from '../tags.js';
@@ -63,6 +64,10 @@ export default function Home() {
       <header className="simhead">
         <h1>NFC simulator</h1>
         <span className="badge">SIMULATION</span>
+        <nav className="dashnav simnav">
+          <Link to="/">Live queue</Link>
+          <Link to="/dispatch">Dispatcher dashboard</Link>
+        </nav>
       </header>
       <p className="muted">
         Virtual NFC stickers. Tap one with the phone to send the same request a real sticker tap will.

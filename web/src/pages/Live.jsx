@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useStop } from '../live.js';
 import { formatMYT } from '../tags.js';
 
@@ -56,6 +56,11 @@ export default function Live() {
           {data?.updated_at && <p className="muted small">Last tap {formatMYT(data.updated_at)} · Malaysia time</p>}
         </>
       )}
+      <nav className="foot small" aria-label="Other views">
+        <Link to="/dispatch">Dispatcher dashboard</Link>
+        <span aria-hidden>·</span>
+        <Link to="/sim">NFC simulator</Link>
+      </nav>
     </main>
   );
 }
