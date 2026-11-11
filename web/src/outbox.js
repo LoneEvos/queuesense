@@ -31,13 +31,12 @@ export const deleteTap = (id) => tx('readwrite', (s) => s.delete(id));
 export const listTaps = () => tx('readonly', (s) => s.getAll());
 
 /** Create and persist a tap. The tap time is captured now, on the phone. */
-export async function recordTap(tagId, { action = null } = {}) {
+export async function recordTap(tagId) {
   const tap = {
     event_id: crypto.randomUUID(),
     tag_id: tagId,
     timestamp: new Date().toISOString(),
     attempts: 0,
-    ...(action ? { action } : {}),
   };
   await putTap(tap);
   return tap;
@@ -74,7 +73,6 @@ async function sendTapOnce(tap) {
         tag_id: tap.tag_id,
         timestamp: tap.timestamp,
         offline_buffered,
-        ...(tap.action ? { action: tap.action } : {}),
       }),
     });
     const data = await res.json().catch(() => ({}));

@@ -8,8 +8,8 @@ import { freshStop, positionFor, useStop, waitFor } from '../live.js';
 // What a sticker tap means:
 //   bus sticker    -> board (always; a board with no queue entry is still recorded, flagged)
 //   driver sticker -> depart (always)
-//   queue sticker  -> join, or, if this phone is already in that stop's queue, "Boarding now?" + confirm.
-//                     The confirm lets a demo run on one physical sticker.
+//   queue sticker  -> join; if this phone is already in that stop's queue: "already in the queue (#N)",
+//                     no second entry. Boarding is only ever recorded at a bus sticker, so it has a bus_id.
 // The same sticker again within 30 s is a phone re-read and is ignored.
 const REPEAT_MS = 30_000;
 const JOIN_TTL_MS = 60 * 60 * 1000; // same expiry as the server's live queue
@@ -55,10 +55,10 @@ export default function TapPage() {
   const uidRef = useRef('anon');
   const started = useRef(false);
 
-  async function send(action = null) {
+  async function send() {
     const uid = uidRef.current;
-    setState({ kind: 'sending', boarding: !!action });
-    const tap = await recordTap(tagId, { action });
+    setState({ kind: 'sending' });
+    const tap = await recordTap(tagId);
     mem.set(lastKey(uid, tagId), Date.now());
     const result = await sendTap(tap);
     const d = result.data ?? {};
@@ -66,9 +66,10 @@ export default function TapPage() {
     if (result.kind === 'accepted' && d.event_type === 'BUS_BOARD') mem.drop(`qs-join-${uid}-`);
     navigator.vibrate?.(result.kind === 'accepted' ? 60 : [40, 60, 40]);
     report(tagId, result.kind, d, tap.timestamp);
-    // The server says this phone is already queueing (its storage may have been cleared): offer boarding.
-    if (result.kind === 'accepted' && d.status === 'already_in_queue' && !action) {
-      return setState({ kind: 'confirm', stopId: d.stop_id, joinMs: Date.parse(d.timestamp) });
+    // The server says this phone is already queueing (its storage may have been cleared).
+    if (result.kind === 'accepted' && d.status === 'already_in_queue') {
+      mem.set(joinKey(uid, d.stop_id), Date.parse(d.timestamp));
+      return setState({ kind: 'already', stopId: d.stop_id, joinMs: Date.parse(d.timestamp), position: d.position });
     }
     setState({ ...result, tap });
   }
@@ -92,13 +93,13 @@ export default function TapPage() {
         return setState({ kind: 'repeat', stopId, joinMs: activeJoin });
       }
 
-      // 2. Queue sticker while this phone is in that stop's queue: ask before boarding.
+      // 2. Queue sticker while this phone is in that stop's queue: show its place, send nothing.
       if (tag?.tag_type === 'QUEUE' && activeJoin) {
         const live = await readStop(stopId); // undefined = could not check (offline): trust the phone
         const stillIn = live === undefined || positionFor(freshStop(live), activeJoin) !== null;
         if (stillIn) {
-          report(tagId, 'confirm', { code: 'BOARDING_NOW?' }, new Date(now).toISOString());
-          return setState({ kind: 'confirm', stopId, joinMs: activeJoin });
+          report(tagId, 'already', { code: 'ALREADY_IN_QUEUE' }, new Date(now).toISOString());
+          return setState({ kind: 'already', stopId, joinMs: activeJoin });
         }
         mem.drop(joinKey(uid, stopId)); // boarded or expired since: this tap is a fresh join
       }
@@ -111,7 +112,7 @@ export default function TapPage() {
   const stopId = state.data?.stop_id || state.stopId || tag?.stop_id || 'stopA';
   return (
     <main className="tap">
-      <Card state={state} tagId={tagId} onBoard={() => send('board')} />
+      <Card state={state} tagId={tagId} />
       <nav className="foot">
         <Link to={`/live/${stopId}`}>Live queue</Link>
         <span aria-hidden>·</span>
@@ -121,18 +122,18 @@ export default function TapPage() {
   );
 }
 
-function Card({ state, tagId, onBoard }) {
+function Card({ state, tagId }) {
   if (state.kind === 'sending') {
     return (
       <section className="card">
         <div className="spinner" aria-hidden />
-        <h1>{state.boarding ? 'Recording your boarding…' : 'Recording your tap…'}</h1>
+        <h1>Recording your tap…</h1>
       </section>
     );
   }
 
-  if (state.kind === 'confirm') {
-    return <ConfirmBoard stopId={state.stopId} joinMs={state.joinMs} onBoard={onBoard} />;
+  if (state.kind === 'already') {
+    return <AlreadyInQueue stopId={state.stopId} joinMs={state.joinMs} position={state.position} />;
   }
 
   if (state.kind === 'repeat') {
@@ -181,7 +182,7 @@ function Card({ state, tagId, onBoard }) {
         <div className="icon" aria-hidden>
           {soft ? '✓' : '!'}
         </div>
-        <h1>{soft ? "You're still in the queue" : "Couldn't record that tap"}</h1>
+        <h1>{soft ? 'You are already in the queue' : "Couldn't record that tap"}</h1>
         {soft && stopId ? <QueueStatus stopId={stopId} /> : <p>{friendly[d.code] ?? d.message ?? 'Please try again.'}</p>}
       </section>
     );
@@ -249,21 +250,18 @@ function Card({ state, tagId, onBoard }) {
   );
 }
 
-// Already queueing at this stop: one button to confirm boarding.
-function ConfirmBoard({ stopId, joinMs, onBoard }) {
+// Already queueing at this stop: no second entry. Boarding is recorded when they tap the bus sticker.
+function AlreadyInQueue({ stopId, joinMs, position: fromServer }) {
   const { data } = useStop(stopId);
-  const position = positionFor(data, joinMs);
+  const position = positionFor(data, joinMs) ?? fromServer ?? null;
   return (
     <section className="card ok" role="status">
       <div className="icon" aria-hidden>
         ✓
       </div>
-      <h1>{position ? `You are in the queue (#${position})` : 'You are in the queue'}</h1>
-      <p className="big">Boarding now?</p>
-      <button className="primary" onClick={onBoard}>
-        Yes, I'm boarding
-      </button>
-      <p className="muted small">Not boarding yet? Close this page. You keep your place.</p>
+      <h1>{position ? `You are already in the queue (#${position})` : 'You are already in the queue'}</h1>
+      <p className="muted">Your place is kept. Tap the sticker inside the bus door when you get on.</p>
+      <QueueStatus stopId={stopId} joinMs={joinMs} fallback={{ position: fromServer }} />
     </section>
   );
 }

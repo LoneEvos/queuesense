@@ -8,7 +8,7 @@ Rules for contributors and AI assistants: [CLAUDE.md](CLAUDE.md). Source of trut
 | Part | State |
 | --- | --- |
 | `/web` NFC simulator `/sim` | Built. Virtual stickers with real NTAG213 NDEF bytes + a virtual phone |
-| `/web` tap page `/t/:tagId` | Built. Anonymous auth, offline store-and-forward, shows your place (#21, about 1 min) and updates live. Queue sticker = join; tapped again while queueing, it asks "Boarding now?" (one-sticker demo). Bus sticker = board, always. Repeat taps within 30 s are ignored |
+| `/web` tap page `/t/:tagId` | Built. Anonymous auth, offline store-and-forward, shows your place (#21, about 1 min) and updates live. Queue sticker = join (tapped again while queueing: "You are already in the queue (#N)", no second entry). Bus sticker = board, always, even with no queue tap (recorded, flagged). Driver sticker = bus departs. Repeat taps within 30 s are ignored |
 | `/web` live count `/` and `/live/:stopId` | Built. Queue length, wait estimate, last bus (boarded / left behind), real-time |
 | `/ingest` | Built. Token check, tag registry, anti-spoof rules, salted hash, live queue + history in one Firestore transaction |
 | `/simulator` | `send-tap.js`, `rush.js` (200-500 student rush hour), `watch-live.js` |

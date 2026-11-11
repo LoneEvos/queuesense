@@ -18,35 +18,29 @@ export function hashUserId(salt, uid) {
 }
 
 /**
- * Validate the client body. The client says WHICH sticker and WHEN. The tag registry decides what it
- * means; the one exception is action "board" on a queue sticker (one-sticker demo: the student confirms
- * boarding at the stop sticker instead of tapping a bus sticker).
+ * Validate the client body. The client says WHICH sticker and WHEN; the tag registry decides what it means.
  */
 export function parseTapBody(body) {
   if (!body || typeof body !== 'object') return { error: 'Body must be JSON' };
-  const { event_id, tag_id, timestamp, offline_buffered, action } = body;
+  const { event_id, tag_id, timestamp, offline_buffered } = body;
   if (typeof event_id !== 'string' || !UUID_RE.test(event_id)) return { error: 'event_id must be a UUID' };
   if (typeof tag_id !== 'string' || !TAG_ID_RE.test(tag_id)) return { error: 'tag_id is invalid' };
   if (timestamp !== undefined && typeof timestamp !== 'string') return { error: 'timestamp must be ISO 8601' };
-  if (action !== undefined && action !== 'board') return { error: 'action must be "board" or absent' };
   return {
     value: {
       event_id: event_id.toLowerCase(),
       tag_id,
       timestamp,
       offline_buffered: offline_buffered === true,
-      action: action ?? null,
     },
   };
 }
 
 /**
- * Map a registry tag to its event. Returns null for unknown tag types.
- * Queue stickers mean join, unless the student confirmed boarding there (action "board").
- * Bus stickers always mean board and driver stickers always mean depart; action is ignored for them.
+ * Map a registry tag to its event: queue sticker = join, bus sticker = board, driver sticker = depart.
+ * Returns null for unknown tag types. Every boarding therefore comes from a bus sticker and has a bus_id.
  */
-export function eventTypeForTag(tag, action = null) {
-  if (tag?.tag_type === 'QUEUE' && action === 'board') return 'BUS_BOARD';
+export function eventTypeForTag(tag) {
   return EVENT_FOR_TAG[tag?.tag_type] ?? null;
 }
 

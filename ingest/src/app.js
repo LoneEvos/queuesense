@@ -58,14 +58,14 @@ export function createApp({ verifyIdToken, db, config, now = () => Date.now() })
     // 2. Body: which sticker, when.
     const parsed = parseTapBody(req.body);
     if (parsed.error) return fail(res, 400, 'BAD_REQUEST', parsed.error);
-    const { event_id, tag_id, timestamp, offline_buffered, action } = parsed.value;
+    const { event_id, tag_id, timestamp, offline_buffered } = parsed.value;
 
     // 3. Tag registry decides what the tap means.
     const tagSnap = await db.collection('tags').doc(tag_id).get();
     if (!tagSnap.exists) return fail(res, 404, 'UNKNOWN_TAG', 'This sticker is not registered.');
     const tag = tagSnap.data();
     if (tag.active !== true) return fail(res, 403, 'INACTIVE_TAG', 'This sticker is not active.');
-    const event_type = eventTypeForTag(tag, action);
+    const event_type = eventTypeForTag(tag);
     if (!event_type) return fail(res, 500, 'BAD_TAG', 'Sticker has an unknown type.');
 
     const hashed_user_id = hashUserId(config.hashSalt, uid);
@@ -98,7 +98,8 @@ export function createApp({ verifyIdToken, db, config, now = () => Date.now() })
         const user = userSnap.exists ? userSnap.data() : null;
 
         const r = applyAntiSpoof({ eventType: event_type, eventMs, nowMs, state: user, tagId: tag_id });
-        if (r.reject) return r;
+        // A second join while still queueing is answered below with the current place, not a bare 409.
+        if (r.reject && r.reject.code !== 'ALREADY_IN_QUEUE') return r;
         if (r.repeat) {
           // Same sticker, same meaning, within 30 s: answer OK but count nothing.
           return { already: true, reply: { ...baseReply(event, { flagged: false }), status: 'repeat_ignored' } };
@@ -139,6 +140,7 @@ export function createApp({ verifyIdToken, db, config, now = () => Date.now() })
             },
           };
         }
+        if (r.reject) return r;
 
         if (event_type === 'QUEUE_JOIN') {
           q = live.join(q, hashed_user_id, eventMs);
@@ -156,13 +158,10 @@ export function createApp({ verifyIdToken, db, config, now = () => Date.now() })
             row.wait_seconds = b.wait_s;
             row.boarding_stop_id = stopId;
           }
-          // Boarding at the stop sticker (one-sticker demo) has no bus to credit.
-          if (busRef) {
-            tx.set(busRef, {
-              boarded_since_depart: (bus.boarded_since_depart ?? 0) + 1,
-              last_stop: stopId ?? bus.last_stop ?? null,
-            });
-          }
+          tx.set(busRef, {
+            boarded_since_depart: (bus.boarded_since_depart ?? 0) + 1,
+            last_stop: stopId ?? bus.last_stop ?? null,
+          });
         }
 
         if (event_type === 'BUS_DEPART') {

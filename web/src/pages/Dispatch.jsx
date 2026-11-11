@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CAPACITY, simulateDay } from '../../../insights/recommend.js';
+import { useStop } from '../live.js';
+import { formatMYT } from '../tags.js';
 
 // Management dashboard. Everything here is aggregates of SIMULATED history (labelled on screen).
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -65,6 +67,8 @@ export default function Dispatch() {
         </nav>
       </header>
 
+      <LiveNow />
+
       <p className="simnote">
         <strong>Simulated history.</strong>{' '}
         {k?.journeys
@@ -100,6 +104,47 @@ export default function Dispatch() {
         updated {new Date(data.generated_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })} Malaysia time
       </p>
     </main>
+  );
+}
+
+// ---------- Right now: the same live doc the student view reads (aggregates only) ----------
+function LiveNow() {
+  const { loading, data, error } = useStop('stopA');
+  const dep = data?.last_departure;
+  const tiles = [
+    { label: 'In the queue now', value: data?.queue_length ?? 0, unit: 'people' },
+    { label: 'Last bus', value: dep ? formatMYT(dep.at) : '–', unit: dep?.bus_id ?? '' },
+    { label: 'Got on last bus', value: dep?.boarded_count ?? '–', unit: dep ? 'people' : '' },
+    { label: 'Left behind by last bus', value: dep?.left_behind_count ?? '–', unit: dep ? 'people' : '' },
+  ];
+  return (
+    <section className="panel" aria-label="Right now at Stop A">
+      <h2>Right now at Stop A</h2>
+      {error ? (
+        <p className="warn">Live count unavailable right now, retrying…</p>
+      ) : loading ? (
+        <p className="muted">Connecting to the live queue…</p>
+      ) : (
+        <>
+          <div className="kpis">
+            {tiles.map((t) => (
+              <div key={t.label} className="kpi">
+                <span className="lbl">{t.label}</span>
+                <span className="val">
+                  {t.value}
+                  {t.unit && <small>{t.unit}</small>}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="muted small">
+            From today's sticker taps, updates live.{' '}
+            {!data ? 'No taps at this stop yet today.' : !dep ? 'No bus has departed yet today.' : ''}
+            {data?.simulated ? ' Simulation mode.' : ''}
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 

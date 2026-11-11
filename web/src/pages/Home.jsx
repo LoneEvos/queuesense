@@ -76,8 +76,9 @@ export default function Home() {
         </nav>
       </header>
       <p className="muted">
-        Virtual NFC stickers. Tap one with the phone to send the same request a real sticker tap will. One-sticker
-        demo: tap <strong>Join queue</strong>, then tap it again after 30 seconds to get “Boarding now?”.
+        Virtual NFC stickers. Tap one with the phone to send the same request a real sticker tap will. Demo flow
+        with the three real stickers: <code>stopA-q1</code> join → <code>bus01-door1</code> board →{' '}
+        <code>bus01-driver</code> bus departs (anyone still queueing counts as left behind).
       </p>
 
       <a className="simcount" href="/" target="_blank" rel="noreferrer">

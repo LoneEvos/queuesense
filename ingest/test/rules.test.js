@@ -87,15 +87,13 @@ test('rate limit per ID', () => {
   assert.equal(later.reject, undefined);
 });
 
-test('queue sticker means board only with action "board"; bus and driver stickers ignore action', () => {
-  assert.equal(eventTypeForTag({ tag_type: 'QUEUE' }, 'board'), 'BUS_BOARD');
-  assert.equal(eventTypeForTag({ tag_type: 'QUEUE' }, null), 'QUEUE_JOIN');
-  assert.equal(eventTypeForTag({ tag_type: 'BUS' }, 'board'), 'BUS_BOARD');
-  assert.equal(eventTypeForTag({ tag_type: 'DRIVER' }, 'board'), 'BUS_DEPART');
+test('the tag decides the event: queue = join, bus = board, driver = depart; client cannot override', () => {
+  assert.equal(eventTypeForTag({ tag_type: 'QUEUE' }), 'QUEUE_JOIN');
+  assert.equal(eventTypeForTag({ tag_type: 'BUS' }), 'BUS_BOARD');
+  assert.equal(eventTypeForTag({ tag_type: 'DRIVER' }), 'BUS_DEPART');
   const id = '0b6f8a3e-2a1c-4c3e-9b1a-2f3d4e5f6a7b';
-  assert.equal(parseTapBody({ event_id: id, tag_id: 'stopA-q1', action: 'board' }).value.action, 'board');
-  assert.equal(parseTapBody({ event_id: id, tag_id: 'stopA-q1' }).value.action, null);
-  assert.ok(parseTapBody({ event_id: id, tag_id: 'stopA-q1', action: 'depart' }).error);
+  const v = parseTapBody({ event_id: id, tag_id: 'stopA-q1', action: 'board', event_type: 'BUS_BOARD' }).value;
+  assert.deepEqual(Object.keys(v).sort(), ['event_id', 'offline_buffered', 'tag_id', 'timestamp']);
 });
 
 test('repeat board or depart on the same sticker within 30 s is ignored; joins are not', () => {
