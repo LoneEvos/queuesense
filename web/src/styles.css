@@ -204,7 +204,7 @@ button.secondary {
 .kpi .val small { font-size: 0.9rem; font-weight: 600; color: var(--muted); margin-left: 4px; }
 
 .rec { border-left: 4px solid var(--series-1); padding-left: 14px; margin-top: 10px; }
-.ai-head { display: flex; align-items: center; gap: 8px; }
+.ai-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ai-head h2 { margin: 0; }
 .ai-headline { font-size: 1.1rem; font-weight: 600; line-height: 1.45; margin: 10px 0 6px; }
 .ai-points { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 4px; line-height: 1.5; }
@@ -258,6 +258,7 @@ button.secondary {
 .grid { stroke: var(--grid); stroke-width: 1; }
 .baseline { stroke: var(--axis); stroke-width: 1; }
 .axis { fill: var(--axis); font-size: 11px; }
+@media (max-width: 600px) { .axis { font-size: 22px; } } /* the chart is drawn 640 wide and scaled down: keep labels about 10 px on phones */
 .bar { fill: var(--series-1); }
 .range { stroke: var(--fg); stroke-width: 1.5; opacity: 0.45; }
 .cap { stroke: var(--series-2); stroke-width: 2; }
@@ -274,3 +275,6 @@ button.secondary {
 .datatable { display: block; overflow-x: auto; width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 8px; font-variant-numeric: tabular-nums; }
 .datatable th, .datatable td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: right; }
 .datatable th:first-child { text-align: left; }
+.badge.src-ai { background: var(--ok); color: var(--bg); }
+.badge.src-tpl { background: var(--line); color: var(--fg); }
+.assume { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 0.85rem; display: grid; gap: 2px; }

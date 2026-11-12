@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CAPACITY, simulateDay } from '../../../insights/recommend.js';
+import { ABANDON_MIN, CAPACITY, simulateDay } from '../../../insights/recommend.js';
 import { useStop } from '../live.js';
 import { formatMYT } from '../tags.js';
 
@@ -53,6 +53,10 @@ export default function Dispatch() {
   const heatmap = data.heatmap ?? [];
   const forecast = data.forecast ?? [];
   const recs = data.recommendations ?? [];
+  const weeks = k?.from_date && k?.to_date ? Math.round((Date.parse(k.to_date) - Date.parse(k.from_date)) / 864e5 / 7) : null;
+  const updated = new Date(data.generated_at).toLocaleString('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
+  });
 
   return (
     <main className="dash viz">
@@ -70,10 +74,12 @@ export default function Dispatch() {
       <LiveNow />
 
       <p className="simnote">
-        <strong>Simulated history.</strong>{' '}
+        <strong>Simulated history{weeks ? ` (${weeks} weeks)` : ''}.</strong>{' '}
         {k?.journeys
           ? `${k.journeys.toLocaleString()} journeys and ${(k.trips ?? 0).toLocaleString()} bus trips, ${fmtDate(k.from_date)} – ${fmtDate(k.to_date)}, generated to show how the system works.`
           : 'No history loaded yet.'}{' '}
+        Analytics computed in BigQuery,{' '}
+        {data.source === 'snapshot' ? 'exported as a snapshot on' : 'queried live; results as of'} <strong>{updated}</strong>.
         Real taps already drive the live queue count; loading them into this history is the next step.
       </p>
       {data.forecast_stale && (
@@ -101,7 +107,7 @@ export default function Dispatch() {
 
       <p className="muted small">
         Data: BigQuery ({data.source === 'snapshot' ? 'saved snapshot' : 'live query'}) · forecast: BigQuery ML ARIMA_PLUS ·
-        updated {new Date(data.generated_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })} Malaysia time
+        updated {updated} Malaysia time
       </p>
     </main>
   );
@@ -190,6 +196,7 @@ function Insights() {
       <div className="ai-head">
         <h2 id="ai-h">AI summary</h2>
         <span className="badge">SIMULATED</span>
+        {ai && <span className={`badge ${ai.source === 'gemini' ? 'src-ai' : 'src-tpl'}`}>{ai.source === 'gemini' ? 'GEMINI' : 'TEMPLATE FALLBACK'}</span>}
       </div>
       {!ai ? (
         <p className="muted">Asking Gemini for a summary…</p>
@@ -266,6 +273,15 @@ function Recommendations({ recs, hasForecast }) {
           Forecast {top.forecast_joins} people at {fmtH(top.hour)}. Numbers come from replaying the forecast through the timetable,
           not from the AI.
         </p>
+        <ul className="assume" aria-label="Assumptions">
+          <li>{CAPACITY} seats per bus</li>
+          <li>Extra buses evenly spaced within the hour</li>
+          <li>People give up after {ABANDON_MIN} min</li>
+          <li>
+            Cost per extra trip: not modelled. Changes are ranked by waiting saved (
+            {Math.round(top.person_hours_saved / top.add_buses)} person-hours per extra bus here)
+          </li>
+        </ul>
       </div>
       {rest.length > 0 && (
         <details className="more">

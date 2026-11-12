@@ -5,7 +5,7 @@
 // and measures what that does to wait times and people left behind.
 
 export const CAPACITY = 40;
-const ABANDON_MIN = 60;
+export const ABANDON_MIN = 60; // people give up after waiting this long
 
 /**
  * slots: [{ hour, forecast_joins, scheduled_buses }] for one day (hours in Malaysia time).
@@ -94,7 +94,8 @@ export function recommend(
         if (s.forecast_joins < 60 || extras[s.hour]) continue;
         for (let add = 1; add <= maxExtra; add++) {
           const after = simulateDay(slots, { ...extras, [s.hour]: add });
-          const savedPersonMin = (dayBefore - weightedWait(after)) * people;
+          // Unrounded means, so the saving matches the dashboard's what-if slider exactly.
+          const savedPersonMin = (meanWait(base) - meanWait(after)) * people;
           const perBus = savedPersonMin / add;
           // A bus added early can clear a backlog that hurts later hours, so score by waiting saved
           // across the whole day per extra bus. A second bus in the same hour must add 20% more saving.
@@ -135,10 +136,11 @@ export function recommend(
   return recs.sort((a, b) => b.person_hours_saved - a.person_hours_saved);
 }
 
-function weightedWait(rows) {
+function meanWait(rows) {
   const n = rows.reduce((s, r) => s + r.joins, 0);
-  return n ? round1(rows.reduce((s, r) => s + r.avg_wait_min * r.joins, 0) / n) : 0;
+  return n ? rows.reduce((s, r) => s + r.avg_wait_min * r.joins, 0) / n : 0;
 }
+const weightedWait = (rows) => round1(meanWait(rows));
 function groupBy(a, key) {
   const m = new Map();
   for (const x of a) m.set(key(x), [...(m.get(key(x)) ?? []), x]);
