@@ -72,6 +72,7 @@ try {
 }
 
 server.use('/api', (req, res) => {
+  if (!setupError) return res.status(404).json({ status: 'error', code: 'NOT_FOUND', message: 'No such API path.' });
   console.error(JSON.stringify({ severity: 'ERROR', msg: 'setup failed', err: String(setupError) }));
   res.status(503).json({ status: 'error', code: 'NOT_CONFIGURED', message: 'Server is not configured yet.' });
 });
