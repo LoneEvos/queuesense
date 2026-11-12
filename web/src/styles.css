@@ -281,3 +281,9 @@ button.secondary {
 .ai-sub { margin: 14px 0 4px; font-size: 0.95rem; }
 .ai-actions li { margin-bottom: 6px; }
 .ai-caveat { color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; margin: 10px 0 0; }
+.stopswitch { margin: 12px 0; }
+.stopswitch a.chip { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.stopswitch .route { opacity: 0.75; font-size: 0.8rem; }
+.route-sub { margin: 2px 0 0; color: var(--muted); }
+.simcounts { display: grid; gap: 8px; }
+@media (min-width: 761px) { .simcounts { grid-template-columns: 1fr 1fr; } }

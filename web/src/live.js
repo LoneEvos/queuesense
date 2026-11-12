@@ -14,6 +14,9 @@ export function useStop(stopId) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (!stopId) return undefined;
+    // Switching stops: don't show the previous stop's numbers while the new one loads.
+    setData(undefined);
+    setError(null);
     return watchStop(
       stopId,
       (d) => {

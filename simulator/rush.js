@@ -4,6 +4,7 @@
 //
 //   node simulator/rush.js                       300 students, buses of 40
 //   node simulator/rush.js --students 500 --bus 40 --concurrency 25 --gap 2000
+//   node simulator/rush.js --stop B              LRT -> APU end (stopB-q1, departs with bus01-driver-lrt)
 //
 // Env: INGEST_URL (default http://localhost:8081), FIREBASE_API_KEY, FIREBASE_AUTH_EMULATOR_HOST
 import { randomUUID } from 'node:crypto';
@@ -12,6 +13,17 @@ const arg = (name, def) => {
   const i = process.argv.indexOf(`--${name}`);
   return i > -1 ? Number(process.argv[i + 1]) : def;
 };
+// Each end of the route: its queue sticker and its driver (departure) sticker.
+const STOPS = {
+  A: { queue: 'stopA-q1', driver: 'bus01-driver', name: 'Stop A, APU -> LRT' },
+  B: { queue: 'stopB-q1', driver: 'bus01-driver-lrt', name: 'Stop B, LRT -> APU' },
+};
+const si = process.argv.indexOf('--stop');
+const STOP = STOPS[(si > -1 ? process.argv[si + 1] : 'A').toUpperCase()];
+if (!STOP) {
+  console.error('--stop must be A or B');
+  process.exit(1);
+}
 const STUDENTS = arg('students', 300);
 const BUS_SIZE = arg('bus', 40);
 const CONCURRENCY = arg('concurrency', 20);
@@ -91,11 +103,11 @@ async function timed(tok, tag) {
   return r;
 }
 
-console.log(`Rush: ${STUDENTS} students, ${BUSES} buses of ${BUS_SIZE}, ${CONCURRENCY} at a time [simulated]`);
+console.log(`Rush at ${STOP.name}: ${STUDENTS} students, ${BUSES} buses of ${BUS_SIZE}, ${CONCURRENCY} at a time [simulated]`);
 const tokens = await pool(Array.from({ length: STUDENTS }), 5, () => token());
 
 const t0 = Date.now();
-const joins = await pool(tokens, CONCURRENCY, (tok) => timed(tok, 'stopA-q1'));
+const joins = await pool(tokens, CONCURRENCY, (tok) => timed(tok, STOP.queue));
 const last = joins.filter((j) => j.status < 300).at(-1)?.body;
 console.log(`joined: ${stats.ok}/${STUDENTS} in ${((Date.now() - t0) / 1000).toFixed(1)}s, queue_length=${last?.queue_length}`);
 
@@ -106,7 +118,7 @@ for (let b = 1; b <= BUSES && next < STUDENTS; b++) {
   const batch = tokens.slice(next, next + BUS_SIZE);
   next += batch.length;
   await pool(batch, CONCURRENCY, (tok) => timed(tok, b % 2 ? 'bus01-door1' : 'bus01-door2'));
-  const d = await timed(await token(), 'bus01-driver'); // a fresh phone per bus, like a real shift
+  const d = await timed(await token(), STOP.driver); // a fresh phone per bus, like a real shift
   console.log(`bus ${b}: boarded=${d.body.boarded_count} left_behind=${d.body.left_behind_count}`);
 }
 

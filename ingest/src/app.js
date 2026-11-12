@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   applyAntiSpoof,
+  departStopFor,
   eventTypeForTag,
   hashUserId,
   parseTapBody,
@@ -113,7 +114,7 @@ export function createApp({ verifyIdToken, db, config, now = () => Date.now() })
         let stopId = null;
         if (event_type === 'QUEUE_JOIN') stopId = event.stop_id;
         if (event_type === 'BUS_BOARD' && !r.flagged) stopId = user?.last_join_stop ?? null;
-        if (event_type === 'BUS_DEPART') stopId = bus.last_stop;
+        if (event_type === 'BUS_DEPART') stopId = departStopFor(tag, bus);
 
         const qRef = stopId ? col('queue_state').doc(stopId) : null;
         const qSnap = qRef ? await tx.get(qRef) : null;
@@ -174,7 +175,7 @@ export function createApp({ verifyIdToken, db, config, now = () => Date.now() })
             simulated: event.simulated,
           };
           tx.set(col('trips').doc(event_id), trip);
-          tx.set(busRef, { boarded_since_depart: 0, last_stop: bus.last_stop ?? null });
+          tx.set(busRef, { boarded_since_depart: 0, last_stop: stopId ?? bus.last_stop ?? null });
           reply.boarded_count = trip.boarded_count;
           reply.left_behind_count = trip.left_behind_count;
           liveExtra = { last_departure: { bus_id: trip.bus_id, at: eventTs, ...pick(trip) } };

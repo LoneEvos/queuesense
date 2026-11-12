@@ -14,7 +14,7 @@ const config = makeConfig();
 initializeApp({ projectId: config.projectId });
 const auth = getAuth();
 const db = getFirestore();
-console.log(JSON.stringify({ severity: 'INFO', msg: 'tags seeded', added: await ensureTags(db) }));
+console.log(JSON.stringify({ severity: 'INFO', msg: 'tags seeded', changed: await ensureTags(db) }));
 
 const server = express();
 // Local: no BigQuery credentials, so the dashboard reads sql/dispatch-snapshot.json.

@@ -8,7 +8,7 @@ Rules for contributors and AI assistants: [CLAUDE.md](CLAUDE.md). Source of trut
 | Part | State |
 | --- | --- |
 | `/web` NFC simulator `/sim` | Built. Virtual stickers with real NTAG213 NDEF bytes + a virtual phone |
-| `/web` tap page `/t/:tagId` | Built. Anonymous auth, offline store-and-forward, shows your place (#21, about 1 min) and updates live. Queue sticker = join (tapped again while queueing: "You are already in the queue (#N)", no second entry). Bus sticker = board, always, even with no queue tap (recorded, flagged). Driver sticker = bus departs. Repeat taps within 30 s are ignored |
+| `/web` tap page `/t/:tagId` | Built. Anonymous auth, offline store-and-forward, shows your place (#21, about 1 min) and updates live. Queue sticker = join (tapped again while queueing: "You are already in the queue (#N)", no second entry). Bus sticker = board, always, even with no queue tap (recorded, flagged). Driver sticker = bus departs from its end of the route (`bus01-driver` at Stop A, `bus01-driver-lrt` at Stop B) and closes only that stop's queue. Repeat taps within 30 s are ignored |
 | `/web` live count `/` and `/live/:stopId` | Built. Queue length, wait estimate, last bus (boarded / left behind), real-time |
 | `/ingest` | Built. Token check, tag registry, anti-spoof rules, salted hash, live queue + history in one Firestore transaction |
 | `/simulator` | `send-tap.js`, `rush.js` (200-500 student rush hour), `watch-live.js` |
@@ -25,8 +25,8 @@ Tested locally (12 Nov 2026, `npm run rush -- --students 500 --bus 40`): 500 stu
 
 | Path | What |
 | --- | --- |
-| `/` | Live queue count for Stop A (also `/live`) |
-| `/live/:stopId` | Live queue count for one stop, e.g. `/live/stopA` |
+| `/` | Live queue count for Stop A, APU → LRT (also `/live`), with a switch to Stop B |
+| `/live/:stopId` | Live queue count for one stop: `/live/stopA` (APU → LRT) or `/live/stopB` (LRT → APU) |
 | `/sim` | NFC simulator: virtual stickers and a virtual phone |
 | `/t/:tagId` | Tap page a sticker opens, e.g. `/t/stopA-q1` |
 | `/dispatch` | Dispatcher dashboard |
@@ -47,7 +47,7 @@ npm run dev
 - http://localhost:5173/ is the **live count**.
 - http://localhost:5173/sim is the **NFC simulator**: tap a virtual sticker and the virtual phone opens the tap page.
 - `npm run rush` (second terminal) sends a 300-student rush hour. Options: `npm run rush -- --students 500 --bus 40`.
-- `npm run tap -- stopA-q1 bus01-door1 --students 3` sends individual taps.
+- `npm run tap -- stopA-q1 bus01-door1 --students 3` sends individual taps. `npm run rush -- --stop B` runs the rush at the LRT end.
 - http://localhost:5173/dispatch is the **dispatcher dashboard** (simulated history from `sql/dispatch-snapshot.json`). Add `GEMINI_API_KEY` to `ingest/.env.local` for the Gemini summary.
 
 Phone on the same Wi-Fi: open `http://<your-PC-IP>:5173/sim`. The app calls `/api` through the Vite proxy, so no extra config.
@@ -62,7 +62,7 @@ Phone on the same Wi-Fi: open `http://<your-PC-IP>:5173/sim`. The app calls `/ap
   - `FIREBASE_SERVICE_ACCOUNT` (required) = the Firebase service account JSON (Project settings → Service accounts → Generate new private key). Also used for BigQuery.
   - `GEMINI_API_KEY` (optional) = free key from Google AI Studio for the AI summary on `/dispatch`; without it a template summary is shown. `GEMINI_MODEL` optionally overrides the model list; `AI_PROVIDER` (gemini-api | vertex | template) picks the backend.
   - `HASH_SALT` (optional) = by default derived from the service account key. If two deployments share one Firestore, set the same value on both so a student gets the same anonymous ID on each.
-- **Stickers:** write the URLs in [tags/tags.csv](tags/tags.csv) with NFC Tools (Add record → URL). Rewrite any sticker that still holds an older URL. Tags seed into Firestore automatically on the first tap.
+- **Stickers:** write the URLs in [tags/tags.csv](tags/tags.csv) with NFC Tools (Add record → URL). Rewrite any sticker that still holds an older URL. Tags seed into Firestore automatically on the first tap (stop and bus fields are synced from the CSV; `active` is left alone).
 
 ## Notes
 

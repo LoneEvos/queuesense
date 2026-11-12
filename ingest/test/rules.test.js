@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   applyAntiSpoof,
+  departStopFor,
   eventTypeForTag,
   hashUserId,
   parseTapBody,
@@ -111,6 +112,13 @@ test('repeat board or depart on the same sticker within 30 s is ignored; joins a
   assert.equal(b3.flagged, true);
   const d1 = applyAntiSpoof({ eventType: 'BUS_DEPART', eventMs: NOW, nowMs: NOW, state: null, tagId: 'bus01-driver' });
   assert.equal(applyAntiSpoof({ eventType: 'BUS_DEPART', eventMs: NOW + 5000, nowMs: NOW + 5000, state: d1.nextState, tagId: 'bus01-driver' }).repeat, true);
+});
+
+test('a departure closes only the stop of its driver sticker', () => {
+  assert.equal(departStopFor({ tag_type: 'DRIVER', stop_id: 'stopA' }, { last_stop: 'stopB' }), 'stopA');
+  assert.equal(departStopFor({ tag_type: 'DRIVER', stop_id: 'stopB' }, { last_stop: 'stopA' }), 'stopB');
+  assert.equal(departStopFor({ tag_type: 'DRIVER', stop_id: null }, { last_stop: 'stopA' }), 'stopA'); // old tag
+  assert.equal(departStopFor({ tag_type: 'DRIVER' }, null), null);
 });
 
 test('bus tap with no queue entry is still a boarding, flagged', () => {

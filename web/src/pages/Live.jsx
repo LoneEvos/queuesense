@@ -1,12 +1,13 @@
 import { Link, useParams } from 'react-router-dom';
 import { useStop } from '../live.js';
-import { formatMYT } from '../tags.js';
+import { formatMYT, stopInfo } from '../tags.js';
+import StopSwitch from '../StopSwitch.jsx';
 
 // Student-facing live counter for a stop. Aggregates only.
 export default function Live() {
   const { stopId = 'stopA' } = useParams();
   const { loading, data, error } = useStop(stopId);
-  const name = `Stop ${stopId.replace(/^stop/, '')}`;
+  const stop = stopInfo(stopId);
   const n = data?.queue_length ?? 0;
 
   return (
@@ -14,12 +15,15 @@ export default function Live() {
       <header className="livehead">
         <div>
           <p className="eyebrow">QueueSense · APU shuttle</p>
-          <h1>{name}</h1>
+          <h1>{stop.name}</h1>
+          {stop.route && <p className="route-sub">{stop.route}</p>}
         </div>
         <span className="pill">
           <span className="dot" aria-hidden /> Live
         </span>
       </header>
+
+      <StopSwitch value={stopId} linkFor={(id) => `/live/${id}`} />
 
       {data?.simulated && <p className="simnote">Simulated data. Real stickers are not connected yet.</p>}
 

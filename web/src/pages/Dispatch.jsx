@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ABANDON_MIN, CAPACITY, simulateDay } from '../../../insights/recommend.js';
 import { useStop } from '../live.js';
-import { formatMYT } from '../tags.js';
+import { formatMYT, stopInfo } from '../tags.js';
+import StopSwitch from '../StopSwitch.jsx';
 
 // Management dashboard. Everything here is aggregates of SIMULATED history (labelled on screen).
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -63,7 +64,7 @@ export default function Dispatch() {
       <header className="dashhead">
         <div>
           <p className="eyebrow">QueueSense · Dispatcher</p>
-          <h1>Stop A: bus deployment</h1>
+          <h1>Bus deployment</h1>
         </div>
         <nav className="dashnav">
           <Link to="/">Live queue</Link>
@@ -74,6 +75,7 @@ export default function Dispatch() {
       <LiveNow />
 
       <p className="simnote">
+        <strong>Analytics below: Stop A, APU → LRT direction only (for now).</strong>{' '}
         <strong>Simulated history{weeks ? ` (${weeks} weeks)` : ''}.</strong>{' '}
         {k?.journeys
           ? `${k.journeys.toLocaleString()} journeys and ${(k.trips ?? 0).toLocaleString()} bus trips, ${fmtDate(k.from_date)} – ${fmtDate(k.to_date)}, generated to show how the system works.`
@@ -115,7 +117,9 @@ export default function Dispatch() {
 
 // ---------- Right now: the same live doc the student view reads (aggregates only) ----------
 function LiveNow() {
-  const { loading, data, error } = useStop('stopA');
+  const [stopId, setStopId] = useState('stopA');
+  const stop = stopInfo(stopId);
+  const { loading, data, error } = useStop(stopId);
   const dep = data?.last_departure;
   const tiles = [
     { label: 'In the queue now', value: data?.queue_length ?? 0, unit: 'people' },
@@ -124,8 +128,9 @@ function LiveNow() {
     { label: 'Left behind by last bus', value: dep?.left_behind_count ?? '–', unit: dep ? 'people' : '' },
   ];
   return (
-    <section className="panel" aria-label="Right now at Stop A">
-      <h2>Right now at Stop A</h2>
+    <section className="panel" aria-label={`Right now at ${stop.name}`}>
+      <h2>Right now at {stop.name}</h2>
+      <StopSwitch value={stopId} onPick={setStopId} />
       {error ? (
         <p className="warn">Live count unavailable right now, retrying…</p>
       ) : loading ? (

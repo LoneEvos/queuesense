@@ -2,8 +2,28 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { becomeNewStudent } from '../firebase.js';
 import { decodeUriSticker, encodeUriSticker, NTAG213_USER_BYTES, toHex } from '../ndef.js';
-import { formatMYT, TAG_LABEL, TAGS } from '../tags.js';
+import { formatMYT, STOPS, TAG_LABEL, TAGS } from '../tags.js';
 import { useStop } from '../live.js';
+
+// Live count for one stop; opens its live view.
+function StopCount({ stop }) {
+  const { data, error } = useStop(stop.id);
+  return (
+    <a className="simcount" href={`/live/${stop.id}`} target="_blank" rel="noreferrer">
+      {error ? (
+        <span className="warn">{stop.name}: live count unavailable, retrying… Taps still work and are saved.</span>
+      ) : (
+        <>
+          <span className="num">{data?.queue_length ?? 0}</span>
+          <span>
+            in the queue at {stop.name} ({stop.route}){data?.est_wait_min ? ` · about ${data.est_wait_min} min wait` : ''} · open
+            live view
+          </span>
+        </>
+      )}
+    </a>
+  );
+}
 
 // NFC simulator. Each virtual sticker holds the NDEF bytes a real NTAG213 will hold.
 // "Tapping" decodes those bytes like a phone does and opens the URL in the virtual phone.
@@ -24,7 +44,6 @@ export default function Home() {
   const [reading, setReading] = useState(null);
   const [student, setStudent] = useState(1);
   const [log, setLog] = useState([]);
-  const { data: stopA, error: stopError } = useStop('stopA');
   const [simError, setSimError] = useState(null);
   const phoneRef = useRef(null);
 
@@ -76,23 +95,17 @@ export default function Home() {
         </nav>
       </header>
       <p className="muted">
-        Virtual NFC stickers. Tap one with the phone to send the same request a real sticker tap will. Demo flow
-        with the three real stickers: <code>stopA-q1</code> join → <code>bus01-door1</code> board →{' '}
-        <code>bus01-driver</code> bus departs (anyone still queueing counts as left behind).
+        Virtual NFC stickers. Tap one with the phone to send the same request a real sticker tap will. APU → LRT:{' '}
+        <code>stopA-q1</code> join → <code>bus01-door1</code> board → <code>bus01-driver</code> departs. LRT → APU:{' '}
+        <code>stopB-q1</code> → <code>bus01-door1</code> → <code>bus01-driver-lrt</code>. Anyone still queueing at that
+        stop counts as left behind.
       </p>
 
-      <a className="simcount" href="/" target="_blank" rel="noreferrer">
-        {stopError ? (
-          <span className="warn">Live count unavailable right now, retrying… Taps still work and are saved.</span>
-        ) : (
-          <>
-            <span className="num">{stopA?.queue_length ?? 0}</span>
-            <span>
-              in the queue at Stop A{stopA?.est_wait_min ? ` · about ${stopA.est_wait_min} min wait` : ''} · open live view
-            </span>
-          </>
-        )}
-      </a>
+      <div className="simcounts">
+        {STOPS.map((s) => (
+          <StopCount key={s.id} stop={s} />
+        ))}
+      </div>
       {simError && (
         <p className="warn" role="alert">
           {simError}

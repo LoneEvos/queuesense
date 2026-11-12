@@ -45,6 +45,15 @@ export function eventTypeForTag(tag) {
 }
 
 /**
+ * Which stop's queue a departure closes. A driver sticker sits at one end of the route (its stop_id), so a
+ * departure at the APU end never touches the LRT end's queue. Old driver tags without a stop fall back to
+ * the stop where the bus last picked people up.
+ */
+export function departStopFor(tag, bus) {
+  return tag?.stop_id ?? bus?.last_stop ?? null;
+}
+
+/**
  * Pick the event time. Live taps use server time. Offline-buffered taps keep the
  * phone's tap time, as long as it is within the last 24 h and not in the future.
  */
