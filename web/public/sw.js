@@ -1,6 +1,7 @@
 // App-shell service worker: tap page opens instantly and offline.
 // Taps themselves are queued in IndexedDB by the page, not here.
-const CACHE = 'queuesense-shell-v1';
+// v2: v1 also cached /api responses, so dashboards froze; the new name makes browsers delete that cache.
+const CACHE = 'queuesense-shell-v2';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/index.html', '/manifest.webmanifest', '/icon.svg'])));
@@ -18,6 +19,8 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  // API calls (dashboard data, AI summary, health) always go to the network: never serve them from cache.
+  if (url.pathname.startsWith('/api/')) return;
 
   // Navigations (/t/stopA-q1, /live, ...): network first, fall back to cached shell.
   if (req.mode === 'navigate') {
