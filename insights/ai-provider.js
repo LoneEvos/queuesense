@@ -8,10 +8,19 @@
 // Unset: gemini-api when GEMINI_API_KEY is set, otherwise template.
 // To move to another Gemini endpoint (e.g. Gemini Enterprise), change only this file.
 
-// gemini-flash-lite-latest is last: fast and usually free of "high demand" errors.
-const DEFAULT_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
-// Total time for all attempts. Flash models "think" before answering; Vercel maxDuration is 60 s.
+// Tried in order (checked against the API on 12 Nov 2026). The best model first (~20 s), then fast "lite"
+// models (3-6 s) so an overloaded or slow first choice still leaves time for an answer.
+// Left out: gemini-2.5-* (404 for new keys), gemini-flash-latest / 3.8-flash / 3-flash-preview (hung > 50 s).
+export const DEFAULT_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-3.5-flash-lite',
+  'gemini-3.7-flash',
+];
+// Total time for all attempts (Vercel maxDuration is 60 s), and the most one model may use of it.
 export const TIMEOUT_MS = 50_000;
+const ATTEMPT_MS = 25_000;
 
 /** Thrown when no call was attempted (provider off or not configured), so the reason is a setup fact. */
 export class NotConfigured extends Error {}
@@ -65,7 +74,7 @@ export async function generateJson({ system, prompt, schema, validate }, env = p
         // Credentials in a header, never the URL, so they don't show up in request logs.
         headers: { 'content-type': 'application/json', ...target.headers },
         body,
-        signal: AbortSignal.timeout(left),
+        signal: AbortSignal.timeout(Math.min(left, ATTEMPT_MS)),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
       const data = await res.json();

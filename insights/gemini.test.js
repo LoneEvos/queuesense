@@ -2,7 +2,7 @@ import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildFacts, templateSummary, uncheckedNumbers, validateSummary, getInsights, clearInsightsCache } from './gemini.js';
-import { providerFor } from './ai-provider.js';
+import { DEFAULT_MODELS, providerFor } from './ai-provider.js';
 
 const snapshot = JSON.parse(readFileSync(new URL('../sql/dispatch-snapshot.json', import.meta.url), 'utf8'));
 const facts = buildFacts(snapshot);
@@ -141,7 +141,7 @@ test('API error falls back to the template', async () => {
 test('an invalid answer falls through to the next model, then the template', async () => {
   const { fetchImpl, calls } = fakeModel({ summary: 'Too short.', actions: [], caveat: '' });
   const r = await getInsights(snapshot, { GEMINI_API_KEY: 'k' }, { fetchImpl });
-  assert.equal(calls.length, 3); // every default model tried
+  assert.equal(calls.length, DEFAULT_MODELS.length); // every default model tried
   assert.equal(r.source, 'template');
   assert.match(r.error, /sentences|actions/);
 });

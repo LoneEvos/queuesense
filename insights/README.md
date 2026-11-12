@@ -23,7 +23,7 @@ The answer is cached in memory for 1 hour (5 min after a failure) and on the Ver
 | `template` | Nothing; fixed summary | none |
 
 Unset: `gemini-api` if `GEMINI_API_KEY` is set, otherwise `template`.
-`GEMINI_MODEL` is one model or a comma-separated list tried in order. Default: `gemini-3.6-flash`, `gemini-flash-latest`, `gemini-flash-lite-latest` (moves on after an overload, rate limit, missing model, timeout or invalid answer).
+`GEMINI_MODEL` is one model or a comma-separated list tried in order. Default: `gemini-3.6-flash`, `gemini-3.1-flash-lite`, `gemini-flash-lite-latest`, `gemini-3.5-flash-lite`, `gemini-3.7-flash`. It moves on after an overload, rate limit, missing model, invalid answer or 25 s without an answer; all attempts together stop at 50 s.
 
 ## Turn it on (free, no billing)
 
