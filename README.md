@@ -15,7 +15,7 @@ Rules for contributors and AI assistants: [CLAUDE.md](CLAUDE.md). Source of trut
 | `/simulator/history.js` | Built. 6 weeks of SIMULATED history (journeys, trips, queue snapshots) for BigQuery: `npm run history` |
 | `/sql` | Built. BigQuery sandbox views + BigQuery ML ARIMA_PLUS demand forecast. See [sql/README.md](sql/README.md) |
 | `/dispatch` | Built. KPIs, wait heatmap, 7-day forecast vs seats (today onwards), bus recommendations, what-if slider, AI summary. History is simulated; real taps feed the live count but are not yet exported to BigQuery |
-| `/insights` | Built. Recommender (`recommend.js`) and Gemini summary (`gemini.js`, optional key, template fallback). See [insights/README.md](insights/README.md) |
+| `/insights` | Built. Recommender (`recommend.js`) and AI summary (`gemini.js` + `ai-provider.js`: `AI_PROVIDER` gemini-api / vertex / template, template fallback). See [insights/README.md](insights/README.md) |
 
 `SIMULATION_MODE=true` (default) stamps `simulated: true` on every event. Set it to `false` once real taps count.
 
@@ -60,7 +60,7 @@ Phone on the same Wi-Fi: open `http://<your-PC-IP>:5173/sim`. The app calls `/ap
 - **BigQuery sandbox:** dataset `queuesense`, see [sql/README.md](sql/README.md). The forecast covers 14 days from the last history day; the dashboard shows today onwards and warns when it runs out.
 - **Secrets, set in Vercel only (never commit them):**
   - `FIREBASE_SERVICE_ACCOUNT` (required) = the Firebase service account JSON (Project settings → Service accounts → Generate new private key). Also used for BigQuery.
-  - `GEMINI_API_KEY` (optional) = free key from Google AI Studio for the AI summary on `/dispatch`; without it a template summary is shown. `GEMINI_MODEL` optionally overrides the model list.
+  - `GEMINI_API_KEY` (optional) = free key from Google AI Studio for the AI summary on `/dispatch`; without it a template summary is shown. `GEMINI_MODEL` optionally overrides the model list; `AI_PROVIDER` (gemini-api | vertex | template) picks the backend.
   - `HASH_SALT` (optional) = by default derived from the service account key. If two deployments share one Firestore, set the same value on both so a student gets the same anonymous ID on each.
 - **Stickers:** write the URLs in [tags/tags.csv](tags/tags.csv) with NFC Tools (Add record → URL). Rewrite any sticker that still holds an older URL. Tags seed into Firestore automatically on the first tap.
 

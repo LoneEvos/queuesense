@@ -199,18 +199,20 @@ function Insights() {
         {ai && <span className={`badge ${ai.source === 'gemini' ? 'src-ai' : 'src-tpl'}`}>{ai.source === 'gemini' ? 'GEMINI' : 'TEMPLATE FALLBACK'}</span>}
       </div>
       {!ai ? (
-        <p className="muted">Asking Gemini for a summary…</p>
+        <p className="muted">Loading the summary…</p>
       ) : (
         <>
-          <p className="ai-headline">{ai.headline}</p>
-          <ul className="ai-points">
-            {ai.points.map((p) => (
-              <li key={p}>{p}</li>
+          <p className="ai-headline">{ai.summary}</p>
+          <h3 className="ai-sub">Top 3 actions</h3>
+          <ol className="ai-points ai-actions">
+            {ai.actions.map((a) => (
+              <li key={a.action}>
+                <strong>{a.action}</strong> <span className="muted">{a.reason}</span>
+              </li>
             ))}
-          </ul>
-          <p className="rec ai-action">
-            <span className="lbl">Suggested action</span>
-            {ai.action}
+          </ol>
+          <p className="ai-caveat small">
+            <strong>Caveat:</strong> {ai.caveat}
           </p>
           {ai.unchecked_numbers?.length > 0 && (
             <p className="warn small">
@@ -220,7 +222,7 @@ function Insights() {
           )}
           <p className="muted small">
             {ai.source === 'gemini'
-              ? `Written by Gemini (${ai.model}) from the aggregate numbers on this page. ${
+              ? `Written by Gemini (${ai.model}, ${ai.provider === 'vertex' ? 'Vertex AI' : 'Gemini API'}) from the aggregate numbers on this page. ${
                   ai.unchecked_numbers?.length ? '' : 'Every number checked against the data. '
                 }The recommendation itself comes from the forecast replay, not the AI.`
               : `${ai.reason}, so this is a fixed summary built from the same numbers.`}
