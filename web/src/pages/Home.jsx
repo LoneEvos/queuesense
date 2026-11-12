@@ -4,6 +4,7 @@ import { becomeNewStudent } from '../firebase.js';
 import { decodeUriSticker, encodeUriSticker, NTAG213_USER_BYTES, toHex } from '../ndef.js';
 import { formatMYT, STOPS, TAG_LABEL, TAGS } from '../tags.js';
 import { useStop } from '../live.js';
+import { NfcIcon } from '../icons.jsx';
 
 // Live count for one stop; opens its live view.
 function StopCount({ stop }) {
@@ -16,7 +17,7 @@ function StopCount({ stop }) {
         <>
           <span className="num">{data?.queue_length ?? 0}</span>
           <span>
-            in the queue at {stop.name} ({stop.route}){data?.est_wait_min ? ` · about ${data.est_wait_min} min wait` : ''} · open
+            in the queue at {stop.name} ({stop.route}){data?.est_wait_min ? `, about ${data.est_wait_min} min wait` : ''}. Open the
             live view
           </span>
         </>
@@ -86,15 +87,18 @@ export default function Home() {
 
   return (
     <main className="sim">
-      <header className="simhead">
-        <h1>NFC simulator</h1>
-        <span className="badge">SIMULATION</span>
-        <nav className="dashnav simnav">
+      <header className="topbar">
+        <span className="brand">QueueSense</span>
+        <nav className="topnav" aria-label="Other views">
           <Link to="/">Live queue</Link>
           <Link to="/dispatch">Dispatcher dashboard</Link>
         </nav>
       </header>
-      <p className="muted">
+      <div className="simhead">
+        <h1>NFC simulator</h1>
+        <span className="badge">Simulation</span>
+      </div>
+      <p className="muted simintro">
         Virtual NFC stickers. Tap one with the phone to send the same request a real sticker tap will. APU → LRT:{' '}
         <code>stopA-q1</code> join → <code>bus01-door1</code> board → <code>bus01-driver</code> departs. LRT → APU:{' '}
         <code>stopB-q1</code> → <code>bus01-door1</code> → <code>bus01-driver-lrt</code>. Anyone still queueing at that
@@ -119,14 +123,14 @@ export default function Home() {
             {stickers.map((s) => (
               <li key={s.tag_id}>
                 <button className={`sticker ${reading === s.tag_id ? 'reading' : ''}`} onClick={() => tap(s)}>
-                  <span className="nfc" aria-hidden>
-                    ))
+                  <span className="nfc">
+                    <NfcIcon />
                   </span>
                   <span className="stext">
                     <strong>{TAG_LABEL[s.tag_type]}</strong>
                     <code>{s.tag_id}</code>
                     <small>
-                      NDEF {s.bytes.length}/{NTAG213_USER_BYTES} bytes · {toHex(s.bytes.slice(0, 8))} …
+                      NDEF {s.bytes.length} of {NTAG213_USER_BYTES} bytes, starts {toHex(s.bytes.slice(0, 8))}
                     </small>
                   </span>
                 </button>

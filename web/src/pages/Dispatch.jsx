@@ -60,17 +60,15 @@ export default function Dispatch() {
   });
 
   return (
-    <main className="dash viz">
-      <header className="dashhead">
-        <div>
-          <p className="eyebrow">QueueSense · Dispatcher</p>
-          <h1>Bus deployment</h1>
-        </div>
-        <nav className="dashnav">
+    <main className="dash">
+      <header className="topbar">
+        <span className="brand">QueueSense</span>
+        <nav className="topnav" aria-label="Other views">
           <Link to="/">Live queue</Link>
           <Link to="/sim">NFC simulator</Link>
         </nav>
       </header>
+      <h1 className="pagetitle">Bus deployment</h1>
 
       <LiveNow />
 
@@ -91,25 +89,32 @@ export default function Dispatch() {
         </p>
       )}
 
-      {k ? <Kpis k={k} /> : <Empty title="No key numbers yet">They appear once there is wait history to measure.</Empty>}
-      <Insights />
-      <Recommendations recs={recs} hasForecast={forecast.some((f) => f.scheduled_buses > 0)} />
+      {/* Problem -> evidence -> decision -> what-if -> AI briefing */}
+      {k ? (
+        <Kpis k={k} range={k.from_date && k.to_date ? `${fmtDate(k.from_date)} to ${fmtDate(k.to_date)}` : null} />
+      ) : (
+        <Empty title="No key numbers yet">They appear once there is wait history to measure.</Empty>
+      )}
       {heatmap.length ? (
         <Heatmap cells={heatmap} />
       ) : (
         <Empty title="Average wait by day and hour">No wait history yet, so there is nothing to map.</Empty>
       )}
       {forecast.some((f) => f.scheduled_buses > 0) ? (
-        <ForecastAndWhatIf forecast={forecast} recs={recs} />
+        <ForecastAndWhatIf forecast={forecast} recs={recs} decision={<Recommendations recs={recs} hasForecast />} />
       ) : (
-        <Empty title="Forecast demand and bus capacity">
-          No forecast for the coming days. Run <code>sql/02_forecast.sql</code> in BigQuery to create one.
-        </Empty>
+        <>
+          <Empty title="Forecast demand and bus capacity">
+            No forecast for the coming days. Run <code>sql/02_forecast.sql</code> in BigQuery to create one.
+          </Empty>
+          <Recommendations recs={recs} hasForecast={false} />
+        </>
       )}
+      <Insights />
 
-      <p className="muted small">
-        Data: BigQuery ({data.source === 'snapshot' ? 'saved snapshot' : 'live query'}) · forecast: BigQuery ML ARIMA_PLUS ·
-        updated {updated} Malaysia time
+      <p className="foot-note">
+        Data from BigQuery ({data.source === 'snapshot' ? 'saved snapshot' : 'live query'}). Forecast by BigQuery ML
+        ARIMA_PLUS. Updated {updated}, Malaysia time.
       </p>
     </main>
   );
@@ -128,26 +133,28 @@ function LiveNow() {
     { label: 'Left behind by last bus', value: dep?.left_behind_count ?? '–', unit: dep ? 'people' : '' },
   ];
   return (
-    <section className="panel" aria-label={`Right now at ${stop.name}`}>
-      <h2>Right now at {stop.name}</h2>
-      <StopSwitch value={stopId} onPick={setStopId} />
+    <section className="today" aria-label={`Right now at ${stop.name}`}>
+      <div className="today-head">
+        <h2>Right now at {stop.name}</h2>
+        <StopSwitch value={stopId} onPick={setStopId} />
+      </div>
       {error ? (
         <p className="warn">Live count unavailable right now, retrying…</p>
       ) : loading ? (
         <p className="muted">Connecting to the live queue…</p>
       ) : (
         <>
-          <div className="kpis">
+          <dl className="today-stats">
             {tiles.map((t) => (
-              <div key={t.label} className="kpi">
-                <span className="lbl">{t.label}</span>
-                <span className="val">
+              <div key={t.label}>
+                <dt>{t.label}</dt>
+                <dd>
                   {t.value}
                   {t.unit && <small>{t.unit}</small>}
-                </span>
+                </dd>
               </div>
             ))}
-          </div>
+          </dl>
           <p className="muted small">
             From today's sticker taps, updates live.{' '}
             {!data ? 'No taps at this stop yet today.' : !dep ? 'No bus has departed yet today.' : ''}
@@ -160,25 +167,29 @@ function LiveNow() {
 }
 
 // ---------- KPI tiles ----------
-function Kpis({ k }) {
+function Kpis({ k, range }) {
   const tiles = [
     { label: 'Average wait', value: `${k.avg_wait_min}`, unit: 'min' },
     { label: '90th percentile wait', value: `${k.p90_wait_min}`, unit: 'min', note: '1 in 10 waits longer' },
-    { label: 'Left behind per bus', value: `${k.avg_left_behind_per_bus}`, unit: 'people' },
+    { label: 'Left behind per bus', value: `${k.avg_left_behind_per_bus}`, unit: 'people', bad: true },
     { label: 'Average bus fill', value: `${k.avg_fill_pct}`, unit: '%' },
   ];
   return (
-    <section className="kpis" aria-label="Key numbers, all of history">
-      {tiles.map((t) => (
-        <div key={t.label} className="kpi">
-          <span className="lbl">{t.label}</span>
-          <span className="val">
-            {t.value}
-            <small>{t.unit}</small>
-          </span>
-          {t.note && <span className="muted small">{t.note}</span>}
-        </div>
-      ))}
+    <section className="sect" aria-labelledby="kpi-h">
+      <h2 id="kpi-h">Waiting at Stop A</h2>
+      {range && <p className="sub">Simulated history, {range}.</p>}
+      <div className="kpis">
+        {tiles.map((t) => (
+          <div key={t.label} className={t.bad ? 'kpi bad' : 'kpi'}>
+            <span className="lbl">{t.label}</span>
+            <span className="val">
+              {t.value}
+              <small>{t.unit}</small>
+            </span>
+            {t.note && <span className="note">{t.note}</span>}
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -199,11 +210,15 @@ function Insights() {
 
   if (failed) return null;
   return (
-    <section className="panel" aria-labelledby="ai-h" aria-busy={!ai}>
+    <section className="sect" aria-labelledby="ai-h" aria-busy={!ai}>
       <div className="ai-head">
-        <h2 id="ai-h">AI summary</h2>
-        <span className="badge">SIMULATED</span>
-        {ai && <span className={`badge ${ai.source === 'gemini' ? 'src-ai' : 'src-tpl'}`}>{ai.source === 'gemini' ? 'GEMINI' : 'TEMPLATE FALLBACK'}</span>}
+        <h2 id="ai-h">AI briefing for management</h2>
+        <span className="badge">Simulated data</span>
+        {ai && (
+          <span className={`badge ${ai.source === 'gemini' ? 'src-ai' : 'src-tpl'}`}>
+            {ai.source === 'gemini' ? 'Written by Gemini' : 'Template fallback'}
+          </span>
+        )}
       </div>
       {!ai ? (
         <p className="muted">Loading the summary…</p>
@@ -253,15 +268,15 @@ function Empty({ title, children }) {
 function Recommendations({ recs, hasForecast }) {
   if (!recs.length) {
     return hasForecast ? (
-      <Empty title="Top recommendation, next 7 days">
+      <Empty title="Recommended change, next 7 days">
         No extra buses needed: the timetable carries the forecast demand without long waits.
       </Empty>
     ) : null;
   }
   const [top, ...rest] = recs;
   return (
-    <section className="panel" aria-labelledby="rec-h">
-      <h2 id="rec-h">Top recommendation, next 7 days</h2>
+    <section className="decision" aria-labelledby="rec-h">
+      <h2 id="rec-h">Recommended change, next 7 days</h2>
       <div className="rec">
         <p className="rec-main">
           Add <strong>{top.add_buses} bus{top.add_buses > 1 ? 'es' : ''}</strong> at{' '}
@@ -275,14 +290,18 @@ function Recommendations({ recs, hasForecast }) {
           <Delta label="Left behind per bus" before={top.left_behind_before} after={top.left_behind_after} unit="" />
           <div className="delta">
             <span className="lbl">Waiting saved that day</span>
-            <span className="val">{top.person_hours_saved} person-hours</span>
+            <span className="val">
+              <strong>{top.person_hours_saved}</strong>
+              <small>person-hours</small>
+            </span>
           </div>
         </div>
-        <p className="muted small">
+        <p className="muted">
           Forecast {top.forecast_joins} people at {fmtH(top.hour)}. Numbers come from replaying the forecast through the timetable,
           not from the AI.
         </p>
-        <ul className="assume" aria-label="Assumptions">
+        <h3 className="assume-h">Assumptions</h3>
+        <ul className="assume">
           <li>{CAPACITY} seats per bus</li>
           <li>Extra buses evenly spaced within the hour</li>
           <li>People give up after {ABANDON_MIN} min</li>
@@ -321,7 +340,8 @@ function Delta({ label, before, after, unit }) {
     <div className="delta">
       <span className="lbl">{label}</span>
       <span className="val">
-        {before} → <strong>{after}</strong> {unit}
+        {before} → <strong>{after}</strong>
+        {unit && <small>{unit}</small>}
       </span>
     </div>
   );
@@ -332,9 +352,9 @@ function Heatmap({ cells }) {
   const [tip, setTip] = useState(null);
   const at = useMemo(() => new Map(cells.map((c) => [`${c.dow_idx}-${c.hour}`, c])), [cells]);
   return (
-    <section className="panel" aria-labelledby="hm-h">
+    <section className="sect" aria-labelledby="hm-h">
       <h2 id="hm-h">Average wait by day and hour</h2>
-      <p className="muted small">Malaysia time. No service on Sundays.</p>
+      <p className="sub">Minutes, Malaysia time. Darker blue means a longer wait. No service on Sundays.</p>
       <div className="hm-scroll">
         <div className="hm" role="grid" aria-label="Average wait in minutes" onMouseLeave={() => setTip(null)}>
           <span />
@@ -419,7 +439,8 @@ const Row = ({ d, children }) => (
 );
 
 // ---------- Forecast + what-if ----------
-function ForecastAndWhatIf({ forecast, recs }) {
+// The recommendation (decision) sits between the forecast it comes from and the what-if that tests it.
+function ForecastAndWhatIf({ forecast, recs, decision }) {
   const dates = [...new Set(forecast.filter((f) => f.scheduled_buses > 0).map((f) => f.date))];
   const [date, setDate] = useState(recs[0]?.slot_date ?? dates[0]);
   const daySlots = forecast.filter((f) => f.date === date && f.scheduled_buses > 0);
@@ -442,20 +463,25 @@ function ForecastAndWhatIf({ forecast, recs }) {
   }
 
   return (
-    <section className="panel" aria-labelledby="fc-h">
-      <h2 id="fc-h">Forecast demand and bus capacity</h2>
-      <div className="chips" role="group" aria-label="Day">
-        {dates.map((d) => (
-          <button key={d} className={d === date ? 'chip on' : 'chip'} aria-pressed={d === date} onClick={() => pickDate(d)}>
-            {fmtDate(d)}
-          </button>
-        ))}
-      </div>
+    <>
+      <section className="sect" aria-labelledby="fc-h">
+        <h2 id="fc-h">Forecast demand and bus capacity, next 7 days</h2>
+        <p className="sub">People expected per hour against seats per hour. Coral bars have more people than seats.</p>
+        <div className="chips" role="group" aria-label="Day">
+          {dates.map((d) => (
+            <button key={d} className={d === date ? 'chip on' : 'chip'} aria-pressed={d === date} onClick={() => pickDate(d)}>
+              {fmtDate(d)}
+            </button>
+          ))}
+        </div>
+        <ForecastChart slots={daySlots} extra={{ [hour]: extra }} />
+      </section>
 
-      <ForecastChart slots={daySlots} extra={{ [hour]: extra }} />
+      {decision}
 
-      <div className="whatif">
-        <h3>What if we add buses?</h3>
+      <section className="sect whatif" aria-labelledby="wi-h">
+        <h2 id="wi-h">What if we add buses on {fmtDate(date)}?</h2>
+        <p className="sub">Changes here also redraw the seats line in the forecast chart. Pick another day there.</p>
         <div className="whatif-controls">
           <label>
             Hour
@@ -482,14 +508,17 @@ function ForecastAndWhatIf({ forecast, recs }) {
           />
           <div className="delta">
             <span className="lbl">Waiting saved that day</span>
-            <span className="val">{Math.max(0, saved)} person-hours</span>
+            <span className="val">
+              <strong>{Math.max(0, saved)}</strong>
+              <small>person-hours</small>
+            </span>
           </div>
         </div>
         <p className="muted small">
           Replays the forecast through the timetable with {CAPACITY}-seat buses. Simulated estimate, not a promise.
         </p>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 

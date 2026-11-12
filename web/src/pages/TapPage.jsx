@@ -4,6 +4,7 @@ import { recordTap, sendTap } from '../outbox.js';
 import { currentUid, readStop } from '../firebase.js';
 import { formatMYT, placeName, TAGS } from '../tags.js';
 import { freshStop, positionFor, useStop, waitFor } from '../live.js';
+import { AlertIcon, CheckIcon, ClockIcon } from '../icons.jsx';
 
 // What a sticker tap means:
 //   bus sticker    -> board (always; a board with no queue entry is still recorded, flagged)
@@ -115,7 +116,6 @@ export default function TapPage() {
       <Card state={state} tagId={tagId} />
       <nav className="foot">
         <Link to={`/live/${stopId}`}>Live queue</Link>
-        <span aria-hidden>·</span>
         <span>No name or student ID collected</span>
       </nav>
     </main>
@@ -139,9 +139,9 @@ function Card({ state, tagId }) {
   if (state.kind === 'repeat') {
     return (
       <section className="card ok" role="status">
-        <div className="icon" aria-hidden>
-          ✓
-        </div>
+        <div className="icon">
+        <CheckIcon />
+      </div>
         <h1>Already recorded</h1>
         <p className="muted">You tapped this sticker a few seconds ago, so this tap was not counted again.</p>
         {state.joinMs && state.stopId && <QueueStatus stopId={state.stopId} joinMs={state.joinMs} />}
@@ -154,8 +154,8 @@ function Card({ state, tagId }) {
   if (state.kind === 'queued') {
     return (
       <section className="card pending" role="status">
-        <div className="icon" aria-hidden>
-          ⏳
+        <div className="icon">
+          <ClockIcon />
         </div>
         <h1>Tap saved</h1>
         <p>
@@ -179,9 +179,7 @@ function Card({ state, tagId }) {
     const stopId = tagOf(tagId)?.stop_id;
     return (
       <section className={`card ${soft ? 'ok' : 'bad'}`} role="alert">
-        <div className="icon" aria-hidden>
-          {soft ? '✓' : '!'}
-        </div>
+        <div className="icon">{soft ? <CheckIcon /> : <AlertIcon />}</div>
         <h1>{soft ? 'You are already in the queue' : "Couldn't record that tap"}</h1>
         {soft && stopId ? <QueueStatus stopId={stopId} /> : <p>{friendly[d.code] ?? d.message ?? 'Please try again.'}</p>}
       </section>
@@ -192,9 +190,9 @@ function Card({ state, tagId }) {
   if (d.status === 'repeat_ignored') {
     return (
       <section className="card ok" role="status">
-        <div className="icon" aria-hidden>
-          ✓
-        </div>
+        <div className="icon">
+        <CheckIcon />
+      </div>
         <h1>Already recorded</h1>
         <p className="muted">This tap was a repeat within 30 seconds, so it was not counted again.</p>
       </section>
@@ -210,13 +208,13 @@ function Card({ state, tagId }) {
 
   return (
     <section className="card ok" role="status">
-      {d.simulated && <span className="badge">SIMULATION</span>}
-      <div className="icon" aria-hidden>
-        ✓
+      {d.simulated && <span className="badge">Simulation</span>}
+      <div className="icon">
+        <CheckIcon />
       </div>
       <h1>{title ?? 'Tap recorded'}</h1>
       <p className="muted">
-        {placeName(d)} · {already ? 'joined' : ''} {formatMYT(d.timestamp)}
+        {placeName(d)}, {already ? 'joined at' : 'at'} {formatMYT(d.timestamp)}
       </p>
 
       {d.event_type === 'QUEUE_JOIN' && <QueueStatus stopId={d.stop_id} joinMs={Date.parse(d.timestamp)} fallback={d} />}
@@ -256,8 +254,8 @@ function AlreadyInQueue({ stopId, joinMs, position: fromServer }) {
   const position = positionFor(data, joinMs) ?? fromServer ?? null;
   return (
     <section className="card ok" role="status">
-      <div className="icon" aria-hidden>
-        ✓
+      <div className="icon">
+        <CheckIcon />
       </div>
       <h1>{position ? `You are already in the queue (#${position})` : 'You are already in the queue'}</h1>
       <p className="muted">Your place is kept. Tap the sticker inside the bus door when you get on.</p>
@@ -285,7 +283,7 @@ function QueueStatus({ stopId, joinMs, fallback }) {
       <span className="big">{wait ? `about ${wait} min` : 'Wait time shows after the first few boardings'}</span>
       {data && (
         <span className="muted">
-          <span className="dot" aria-hidden /> {data.queue_length} in the queue · updates live
+          <span className="dot" aria-hidden /> {data.queue_length} in the queue, updates live
         </span>
       )}
     </div>

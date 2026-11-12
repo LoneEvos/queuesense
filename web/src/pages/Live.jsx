@@ -12,20 +12,22 @@ export default function Live() {
 
   return (
     <main className="live">
-      <header className="livehead">
-        <div>
-          <p className="eyebrow">QueueSense · APU shuttle</p>
-          <h1>{stop.name}</h1>
-          {stop.route && <p className="route-sub">{stop.route}</p>}
-        </div>
+      <header className="topbar">
+        <span className="brand">QueueSense</span>
         <span className="pill">
           <span className="dot" aria-hidden /> Live
         </span>
       </header>
+      <div className="livehead">
+        <div>
+          <h1>{stop.name}</h1>
+          {stop.route && <p className="route-sub">APU shuttle, {stop.route}</p>}
+        </div>
+      </div>
 
       <StopSwitch value={stopId} linkFor={(id) => `/live/${id}`} />
 
-      {data?.simulated && <p className="simnote">Simulated data. Real stickers are not connected yet.</p>}
+      {data?.simulated && <p className="simnote">Simulation mode: every tap at this stop is recorded as test data.</p>}
 
       {loading ? (
         <p className="muted">Connecting…</p>
@@ -63,12 +65,11 @@ export default function Live() {
 
           {!data && <p className="muted">No taps at this stop yet today. The count starts with the first tap.</p>}
           <p className="hint">Tap your phone on the QueueSense sticker at the stop to join. No app, no login.</p>
-          {data?.updated_at && <p className="muted small">Last tap {formatMYT(data.updated_at)} · Malaysia time</p>}
+          {data?.updated_at && <p className="muted small">Last tap at {formatMYT(data.updated_at)}, Malaysia time.</p>}
         </>
       )}
-      <nav className="foot small" aria-label="Other views">
+      <nav className="foot" aria-label="Other views">
         <Link to="/dispatch">Dispatcher dashboard</Link>
-        <span aria-hidden>·</span>
         <Link to="/sim">NFC simulator</Link>
       </nav>
     </main>
