@@ -463,7 +463,7 @@ function ForecastAndWhatIf({ forecast, recs }) {
     <>
       <section className="panel" aria-labelledby="fc-h">
         <h2 id="fc-h">Forecast demand and bus capacity, next 7 days</h2>
-        <p className="sub">People expected per hour against seats per hour. Coral bars have more people than seats.</p>
+        <p className="sub">People expected per hour against seats per hour. Orange bars have more people than seats.</p>
         <div className="chips" role="group" aria-label="Day">
           {dates.map((d) => (
             <button key={d} className={d === date ? 'chip on' : 'chip'} aria-pressed={d === date} onClick={() => pickDate(d)}>

@@ -4,35 +4,36 @@
    Signature: the recommended change is the only teal-tinted surface on the dashboard. */
 
 :root {
-  color-scheme: dark;
-  --bg: #0b1120;
-  --surface: #111827;
-  --raised: #1a2333;
-  --rule: #273449; /* stronger than before so card edges survive a projector */
-  --fg: #e7ecf3;
-  --muted: #9aa8bc; /* 7:1 on --surface */
-  --accent: #5eead4; /* teal: links, selection, the decision */
-  --accent-bg: #0e2b29;
-  --accent-line: #1f5d56;
-  --accent-ink: #04201e;
-  --data: #3987e5;
-  --alert: #f2836b; /* over capacity, left behind */
-  --ok: #5eead4;
-  --ok-bg: #134e4a;
-  --pending: #fcd34d;
-  --pending-bg: #3a2c07;
-  --bad: #fca5a5;
-  --bad-bg: #450a0a;
-  --sim-bg: #2b2209;
-  --sim-line: #5c4a12;
-  --sim-fg: #fcd34d;
+  /* Bright by default: projectors wash out dark pages, so the presenting view is light. */
+  color-scheme: light;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --raised: #eef2f8;
+  --rule: #cfd8e5; /* visible on a washed-out projector */
+  --fg: #0d1b2e;
+  --muted: #4a5a70; /* 7:1 on white */
+  --accent: #1d5bd8; /* blue: links, selection, the decision */
+  --accent-bg: #e8effd;
+  --accent-line: #b3c8f4;
+  --accent-ink: #ffffff;
+  --data: #3a86e8;
+  --alert: #d9481e; /* over capacity, left behind */
+  --ok: #0f7a5c;
+  --ok-bg: #dcf5ec;
+  --pending: #8a5300;
+  --pending-bg: #fff1d1;
+  --bad: #b42318;
+  --bad-bg: #fde4e1;
+  --sim-bg: #fff6dc;
+  --sim-line: #efd48c;
+  --sim-fg: #6b4400;
   /* Charts */
-  --seq-1: #0d366b; --seq-2: #184f95; --seq-3: #256abf; --seq-4: #3987e5; --seq-5: #6da7ec; --seq-6: #b7d3f6;
-  --seq-ink-light: #0b1120; --seq-ink-dark: #ffffff;
+  --seq-1: #d6e6fc; --seq-2: #a8cbf6; --seq-3: #74a9ee; --seq-4: #3a86e8; --seq-5: #2363c4; --seq-6: #16468f;
+  --seq-ink-light: #0d1b2e; --seq-ink-dark: #ffffff;
   --series-1: var(--data); /* forecast people */
-  --series-2: #e7ecf3; /* seats */
-  --grid: #222e42;
-  --axis: #9aa8bc;
+  --series-2: #0d1b2e; /* seats */
+  --grid: #e3e8f0;
+  --axis: #4a5a70;
 
   /* Type: one system family, 1.2 scale from 16px */
   --t-xs: 0.8125rem;
@@ -56,34 +57,36 @@
   accent-color: var(--accent);
   caret-color: var(--accent);
 }
-@media (prefers-color-scheme: light) {
+/* Devices in dark mode get the same identity in dark: navy surfaces, the same blue accent. */
+@media (prefers-color-scheme: dark) {
   :root {
-    color-scheme: light;
-    --bg: #f8fafc;
-    --surface: #ffffff;
-    --raised: #f1f5f9;
-    --rule: #d5dde8;
-    --fg: #0f172a;
-    --muted: #475569;
-    --accent: #0f766e;
-    --accent-bg: #e6f7f4;
-    --accent-line: #99d8cf;
-    --accent-ink: #ffffff;
-    --data: #2a78d6;
-    --alert: #c2410c;
-    --ok: #0f766e;
-    --ok-bg: #ccfbf1;
-    --pending: #92400e;
-    --pending-bg: #fef3c7;
-    --bad: #b91c1c;
-    --bad-bg: #fee2e2;
-    --sim-bg: #fef3c7;
-    --sim-line: #f2d68a;
-    --sim-fg: #78350f;
-    --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95;
-    --series-2: #0f172a;
-    --grid: #e2e8f0;
-    --axis: #475569;
+    color-scheme: dark;
+    --bg: #0b1220;
+    --surface: #121a2b;
+    --raised: #1a2438;
+    --rule: #2a3750;
+    --fg: #e8edf5;
+    --muted: #9fadc2;
+    --accent: #7aa7ff;
+    --accent-bg: #132341;
+    --accent-line: #2c4c8a;
+    --accent-ink: #0b1220;
+    --data: #4d94ff;
+    --alert: #ff8a6a;
+    --ok: #5fd4a8;
+    --ok-bg: #123a2e;
+    --pending: #fcd34d;
+    --pending-bg: #3a2c07;
+    --bad: #fca5a5;
+    --bad-bg: #450a0a;
+    --sim-bg: #2b2209;
+    --sim-line: #5c4a12;
+    --sim-fg: #fcd34d;
+    --seq-1: #0d366b; --seq-2: #184f95; --seq-3: #256abf; --seq-4: #3987e5; --seq-5: #6da7ec; --seq-6: #b7d3f6;
+    --seq-ink-light: #0b1220;
+    --series-2: #e8edf5;
+    --grid: #222e42;
+    --axis: #9fadc2;
   }
 }
 /* Projectors and big screens: one step larger everywhere. */
@@ -279,7 +282,7 @@ button.secondary:hover { background: var(--raised); }
 .rec-main strong { font-weight: inherit; }
 .rec-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s3); margin: var(--s3) 0; }
 .delta { display: grid; gap: 2px; padding: var(--s3) var(--s4); border-radius: var(--radius-s); background: var(--raised); }
-.decision .delta { background: rgb(0 0 0 / 0.22); }
+.decision .delta { background: var(--surface); }
 .delta .lbl { color: var(--muted); font-size: var(--t-s); }
 .delta .val { font-size: var(--t-m); font-weight: 600; color: var(--muted); }
 .delta .val strong { color: var(--fg); font-weight: 800; font-size: var(--t-xl); }
@@ -291,8 +294,8 @@ button.secondary:hover { background: var(--raised); }
 .more { margin-top: var(--s3); }
 .more summary { cursor: pointer; color: var(--accent); font-size: var(--t-s); font-weight: 600; min-height: 44px; display: flex; align-items: center; }
 .reclist { list-style: none; padding: 0; margin: var(--s1) 0 0; display: grid; gap: 6px; font-size: var(--t-s); }
-.reclist li { display: grid; grid-template-columns: 1.2fr 1.6fr 1fr; gap: var(--s2); padding: var(--s2) var(--s3); border-radius: var(--radius-s); background: rgb(0 0 0 / 0.22); }
-@media (prefers-color-scheme: light) { .decision .delta, .reclist li { background: var(--surface); } }
+.reclist li { display: grid; grid-template-columns: 1.2fr 1.6fr 1fr; gap: var(--s2); padding: var(--s2) var(--s3); border-radius: var(--radius-s); background: var(--surface); }
+@media (prefers-color-scheme: dark) { .decision .delta, .reclist li { background: rgb(0 0 0 / 0.25); } }
 @media (max-width: 760px) { .reclist li { grid-template-columns: 1fr; gap: 2px; } }
 
 /* AI briefing */
