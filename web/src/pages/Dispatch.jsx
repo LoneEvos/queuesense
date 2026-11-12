@@ -89,28 +89,26 @@ export default function Dispatch() {
         </p>
       )}
 
-      {/* Problem -> evidence -> decision -> what-if -> AI briefing */}
+      {/* The answer first (numbers, recommendation, briefing), then the evidence behind it */}
       {k ? (
         <Kpis k={k} range={k.from_date && k.to_date ? `${fmtDate(k.from_date)} to ${fmtDate(k.to_date)}` : null} />
       ) : (
         <Empty title="No key numbers yet">They appear once there is wait history to measure.</Empty>
       )}
+      <Recommendations recs={recs} hasForecast={forecast.some((f) => f.scheduled_buses > 0)} />
+      <Insights />
       {heatmap.length ? (
         <Heatmap cells={heatmap} />
       ) : (
         <Empty title="Average wait by day and hour">No wait history yet, so there is nothing to map.</Empty>
       )}
       {forecast.some((f) => f.scheduled_buses > 0) ? (
-        <ForecastAndWhatIf forecast={forecast} recs={recs} decision={<Recommendations recs={recs} hasForecast />} />
+        <ForecastAndWhatIf forecast={forecast} recs={recs} />
       ) : (
-        <>
-          <Empty title="Forecast demand and bus capacity">
-            No forecast for the coming days. Run <code>sql/02_forecast.sql</code> in BigQuery to create one.
-          </Empty>
-          <Recommendations recs={recs} hasForecast={false} />
-        </>
+        <Empty title="Forecast demand and bus capacity">
+          No forecast for the coming days. Run <code>sql/02_forecast.sql</code> in BigQuery to create one.
+        </Empty>
       )}
-      <Insights />
 
       <p className="foot-note">
         Data from BigQuery ({data.source === 'snapshot' ? 'saved snapshot' : 'live query'}). Forecast by BigQuery ML
@@ -175,7 +173,7 @@ function Kpis({ k, range }) {
     { label: 'Average bus fill', value: `${k.avg_fill_pct}`, unit: '%' },
   ];
   return (
-    <section className="sect" aria-labelledby="kpi-h">
+    <section className="block" aria-labelledby="kpi-h">
       <h2 id="kpi-h">Waiting at Stop A</h2>
       {range && <p className="sub">Simulated history, {range}.</p>}
       <div className="kpis">
@@ -210,7 +208,7 @@ function Insights() {
 
   if (failed) return null;
   return (
-    <section className="sect" aria-labelledby="ai-h" aria-busy={!ai}>
+    <section className="panel" aria-labelledby="ai-h" aria-busy={!ai}>
       <div className="ai-head">
         <h2 id="ai-h">AI briefing for management</h2>
         <span className="badge">Simulated data</span>
@@ -352,7 +350,7 @@ function Heatmap({ cells }) {
   const [tip, setTip] = useState(null);
   const at = useMemo(() => new Map(cells.map((c) => [`${c.dow_idx}-${c.hour}`, c])), [cells]);
   return (
-    <section className="sect" aria-labelledby="hm-h">
+    <section className="panel" aria-labelledby="hm-h">
       <h2 id="hm-h">Average wait by day and hour</h2>
       <p className="sub">Minutes, Malaysia time. Darker blue means a longer wait. No service on Sundays.</p>
       <div className="hm-scroll">
@@ -439,8 +437,7 @@ const Row = ({ d, children }) => (
 );
 
 // ---------- Forecast + what-if ----------
-// The recommendation (decision) sits between the forecast it comes from and the what-if that tests it.
-function ForecastAndWhatIf({ forecast, recs, decision }) {
+function ForecastAndWhatIf({ forecast, recs }) {
   const dates = [...new Set(forecast.filter((f) => f.scheduled_buses > 0).map((f) => f.date))];
   const [date, setDate] = useState(recs[0]?.slot_date ?? dates[0]);
   const daySlots = forecast.filter((f) => f.date === date && f.scheduled_buses > 0);
@@ -464,7 +461,7 @@ function ForecastAndWhatIf({ forecast, recs, decision }) {
 
   return (
     <>
-      <section className="sect" aria-labelledby="fc-h">
+      <section className="panel" aria-labelledby="fc-h">
         <h2 id="fc-h">Forecast demand and bus capacity, next 7 days</h2>
         <p className="sub">People expected per hour against seats per hour. Coral bars have more people than seats.</p>
         <div className="chips" role="group" aria-label="Day">
@@ -477,11 +474,10 @@ function ForecastAndWhatIf({ forecast, recs, decision }) {
         <ForecastChart slots={daySlots} extra={{ [hour]: extra }} />
       </section>
 
-      {decision}
 
-      <section className="sect whatif" aria-labelledby="wi-h">
+      <section className="panel whatif" aria-labelledby="wi-h">
         <h2 id="wi-h">What if we add buses on {fmtDate(date)}?</h2>
-        <p className="sub">Changes here also redraw the seats line in the forecast chart. Pick another day there.</p>
+        <p className="sub">Changes here redraw the seats line in the chart above. Pick another day there.</p>
         <div className="whatif-controls">
           <label>
             Hour
