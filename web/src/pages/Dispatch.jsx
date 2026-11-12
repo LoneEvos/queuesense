@@ -192,6 +192,8 @@ function Insights() {
   useEffect(() => {
     fetch('/api/insights')
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      // Only show an answer in the shape this page knows (an old cached copy has a different one).
+      .then((d) => (typeof d?.summary === 'string' && Array.isArray(d.actions) ? d : Promise.reject(new Error('unexpected shape'))))
       .then(setAi, () => setFailed(true));
   }, []);
 
